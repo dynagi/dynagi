@@ -1,0 +1,39 @@
+name: Refresh profile panels
+
+# Rebuilds the SVG panels and repository index from live GitHub data.
+on:
+  schedule:
+    - cron: "17 3 * * *" # daily, 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-profile
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build panels
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/build_assets.py
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md assets data
+          # data/github.json changes daily (fetch date); only commit when a panel did
+          if git diff --cached --quiet -- README.md assets; then
+            echo "No visible changes"
+            exit 0
+          fi
+          git commit -m "Refresh profile panels"
+          git push

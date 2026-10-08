@@ -95,8 +95,8 @@
 
 <p align="center"><code>⚡ ACTIVE BUILDS</code><br><sub>Pushed to in the last 90 days.</sub></p>
 <p align="center">
+  <a href="https://github.com/dynagi/AI_Agent"><img src="assets/repo-ai-agent.svg" width="400" alt="#014 AI_Agent — AURA — Web client for a multi-agent AI assistant — Jupyter Notebook, updated Oct 2026"></a>
   <a href="https://github.com/dynagi/Portfolio"><img src="assets/repo-portfolio.svg" width="400" alt="#010 Portfolio — Pokédex Portfolio — Pokémon-inspired developer portfolio — CSS, updated Oct 2026"></a>
-  <a href="https://github.com/dynagi/AI_Agent"><img src="assets/repo-ai-agent.svg" width="400" alt="#014 AI_Agent — AURA — Web client for a multi-agent AI assistant — TypeScript, updated Sep 2026"></a>
 </p>
 <p align="center"><sub>LIVE: <a href="https://portfolio-gigacbum.vercel.app">Portfolio ↗</a></sub></p>
 

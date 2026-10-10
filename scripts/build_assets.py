@@ -66,7 +66,7 @@ PROFILE = dict(
     title="SOFTWARE DEVELOPER",
     interests="AI · COMPUTER VISION · FULL-STACK · NETWORKS",
     card=[
-        ("ROLE", "Network Operations · Microland (RSM UK)"),
+        ("ROLE", "Network Operations · Microland"),
         ("EDUCATION", "B.Tech CSE · MIT-WPU, Pune"),
         ("BASED IN", "Bangalore, India"),
         ("BUILDS", "AI · Computer Vision · Full-Stack"),
@@ -132,7 +132,7 @@ JOURNEY = [  # oldest first
          org="M3 Technology",
          text="Built SQL validation and reporting tooling for reporting pipelines."),
     dict(slug="3", period="JAN 2026 — PRESENT", role="Network Operations",
-         org="Microland · RSM UK project", now=True,
+         org="Microland", now=True,
          text="Network infrastructure and operations, plus cloud and system administration."),
 ]
 

@@ -42,7 +42,7 @@
 <!-- ═══════════════════ PROFILE + SUMMARY ═══════════════════ -->
 <a id="about"></a>
 <p align="center">
-  <img src="assets/profile-card.svg" width="400" alt="Profile: Network Operations at Microland (RSM UK); B.Tech CSE, MIT-WPU, Pune; based in Bangalore, India; builds AI, computer vision and full-stack products; open to AI, vision and full-stack roles.">
+  <img src="assets/profile-card.svg" width="400" alt="Profile: Network Operations at Microland; B.Tech CSE, MIT-WPU, Pune; based in Bangalore, India; builds AI, computer vision and full-stack products; open to AI, vision and full-stack roles.">
   <a href="https://github.com/dynagi"><img src="assets/github-card.svg" width="400" alt="GitHub: @dynagi, with public repository count, top languages, member-since date and latest push."></a>
 </p>
 
@@ -155,7 +155,7 @@ I build AI-powered applications, computer-vision systems and the full-stack prod
 <p align="center">
   <img src="assets/route-1.svg" width="268" alt="2021 — 2025: B.Tech in Computer Science and Engineering, MIT World Peace University, Pune. CGPA 8.61.">
   <img src="assets/route-2.svg" width="268" alt="Jul 2024 — Jan 2025: Software Intern, M3 Technology. SQL validation and reporting tooling.">
-  <img src="assets/route-3.svg" width="268" alt="Jan 2026 — Present: Network Operations, Microland, RSM UK project. Network infrastructure and operations.">
+  <img src="assets/route-3.svg" width="268" alt="Jan 2026 — Present: Network Operations, Microland. Network infrastructure and operations.">
 </p>
 
 <!-- ═══════════ ACHIEVEMENTS AND CERTIFICATIONS ═══════════ -->

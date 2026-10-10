@@ -722,15 +722,19 @@ def update_readme(regions):
         head, rest = doc.split(start, 1)
         doc = f"{head}{start}\n{content}\n{end}{rest.split(end, 1)[1]}"
 
-    # Browsers cache images by URL, so tag each one with a hash of its content:
-    # the URL changes exactly when the panel does.
-    def versioned(m):
-        path = OUT / m.group(1)
-        if not path.exists():
-            return m.group(0)
-        return f'src="assets/{m.group(1)}?v={sha1(path.read_bytes()).hexdigest()[:8]}"'
+    # Browsers cache images by URL, and GitHub drops query strings when it
+    # redirects README images, so the content hash goes in the file name:
+    # name.svg -> name.<hash>.svg. The URL changes exactly when the panel does.
+    hashed = {}
+    for path in sorted(OUT.glob("*.svg")):
+        digest = sha1(path.read_bytes()).hexdigest()[:8]
+        hashed[path.stem] = f"{path.stem}.{digest}.svg"
+        path.rename(path.with_name(hashed[path.stem]))
 
-    doc = re.sub(r'src="assets/([\w.-]+\.svg)(?:\?v=\w+)?"', versioned, doc)
+    def versioned(m):
+        return f'src="assets/{hashed.get(m.group(1), m.group(1) + ".svg")}"'
+
+    doc = re.sub(r'src="assets/([\w-]+)(?:\.[0-9a-f]{8})?\.svg(?:\?v=\w+)?"', versioned, doc)
     README.write_text(doc, encoding="utf-8", newline="\n")
 
 

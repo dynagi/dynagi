@@ -23,6 +23,7 @@ Panels are 400px (two-up), 268px (three-up), 196px (four-up) or 160px
 """
 
 from datetime import date, datetime, timedelta, timezone
+from hashlib import sha1
 from html import escape
 from pathlib import Path
 import json
@@ -720,6 +721,16 @@ def update_readme(regions):
             continue
         head, rest = doc.split(start, 1)
         doc = f"{head}{start}\n{content}\n{end}{rest.split(end, 1)[1]}"
+
+    # Browsers cache images by URL, so tag each one with a hash of its content:
+    # the URL changes exactly when the panel does.
+    def versioned(m):
+        path = OUT / m.group(1)
+        if not path.exists():
+            return m.group(0)
+        return f'src="assets/{m.group(1)}?v={sha1(path.read_bytes()).hexdigest()[:8]}"'
+
+    doc = re.sub(r'src="assets/([\w.-]+\.svg)(?:\?v=\w+)?"', versioned, doc)
     README.write_text(doc, encoding="utf-8", newline="\n")
 
 

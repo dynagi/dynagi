@@ -1,19 +1,25 @@
-"""Build the Trainer Command Center profile from live GitHub data.
+"""Build the GitHub profile README panels from live GitHub data.
 
-GitHub strips CSS and JavaScript from READMEs, so every panel is a
-self-contained SVG. This script:
+GitHub strips CSS and JavaScript from READMEs, so every panel is a static,
+self-contained SVG (no scripts, no external fonts or images). This script:
 
-  1. fetches the profile, repositories, languages, commit/PR/issue totals and
-     the contribution calendar for USER (cached in data/github.json),
+  1. fetches public data for USER and caches it in data/github.json,
   2. draws the panels into assets/,
-  3. rewrites the repository index between the REPOS markers in README.md.
+  3. rewrites the generated regions of README.md (featured repositories,
+     pinned projects and the full repository index).
 
     python scripts/build_assets.py            # fetch + build
     python scripts/build_assets.py --offline  # rebuild from data/github.json
 
-.github/workflows/refresh.yml runs it daily. Panels are 400px (two-up),
-268px (three-up) or 196px (four-up) wide so they sit side by side on desktop
-and wrap to one column on mobile.
+Where each number comes from (all public, no secrets needed):
+  repositories, languages .... GitHub REST API  /users/{user}, /repos/.../languages
+  commits .................... GitHub Search API  /search/commits?q=author:{user}
+  contribution calendar ...... github.com/users/{user}/contributions
+If a source is unavailable the previous cached value is kept, so a failed
+fetch never blanks a panel. .github/workflows/refresh.yml runs this daily.
+
+Panels are 400px (two-up), 268px (three-up), 196px (four-up) or 160px
+(five-up) wide so they sit side by side on desktop and wrap on mobile.
 """
 
 from datetime import date, datetime, timedelta, timezone
@@ -33,111 +39,101 @@ OUT = ROOT / "assets"
 CACHE = ROOT / "data" / "github.json"
 README = ROOT / "README.md"
 
-# ── Design tokens (shared with the portfolio) ────────────────────────────────
-VOID, ABYSS, SOLID, LINE = "#07080f", "#0b0d18", "#141828", "#23283b"
-RED, RED_HI, RED_LO = "#ee2b1f", "#ff5a4d", "#a60d06"
-HOLO, HOLO_SOFT, GOLD = "#45e6d4", "#7bf3e6", "#f5c451"
-INK, MUTED, MUTED_2 = "#eef1fa", "#8b91a7", "#5c627a"
+# ── Design tokens ────────────────────────────────────────────────────────────
+BG, BG2, CARD, LINE = "#080D18", "#0D1728", "#0B1322", "#1D2B45"
+CYAN, BLUE, RED, PURPLE = "#35DDF2", "#4D9FFF", "#FF4B55", "#A78BFA"
+GREEN, YELLOW = "#48D597", "#F5C451"
+INK, MUTED, DIM = "#F2F5FC", "#A7B5CD", "#6B7A96"
 
 DISP = "Sora,'Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif"
 BODY = "Inter,'Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif"
 MONO = "'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"
 
 LANG_COLORS = {
-    "TypeScript": "#3178c6", "JavaScript": "#f1e05a", "Python": "#3572a5",
-    "Dart": "#00b4ab", "CSS": "#8a63d2", "HTML": "#e34c26", "PLpgSQL": "#5b8fc7",
-    "Jupyter Notebook": "#da5b0b", "Shell": "#89e051", "Kotlin": "#a97bff",
-    "Swift": "#f05138", "C++": "#f34b7d", "Ruby": "#cc342d", "Dockerfile": "#5d8aa8",
+    "TypeScript": "#4D9FFF", "JavaScript": "#F5C451", "Python": "#5B8DEF",
+    "Dart": "#2DD4BF", "CSS": "#A78BFA", "HTML": "#FF7A59", "PLpgSQL": "#7FB2E5",
+    "Jupyter Notebook": "#F59E42", "Shell": "#48D597", "Kotlin": "#C084FC",
+    "Swift": "#FF6B57", "C++": "#F472B6", "Ruby": "#EF4444", "Dockerfile": "#64A6C8",
 }
-MAP_LEVELS = ["#151a2a", "#17524f", "#1f8a80", "#2fc0b0", "#45e6d4"]
+# Notebook files are mostly embedded output, so their byte counts would swamp
+# the real code. They are left out of language statistics.
+EXCLUDED_LANGS = {"Jupyter Notebook"}
+MAP_LEVELS = ["#121C30", "#14506A", "#1A84A6", "#27B4D3", "#35DDF2"]
 
-# ── Curated content ──────────────────────────────────────────────────────────
+# ── Curated content (edit here) ──────────────────────────────────────────────
 PROFILE = dict(
     name="Shivam Upadhyay",
-    tagline="SOFTWARE DEVELOPER · AI · VISION · WEB",
-    klass="SOFTWARE DEVELOPER",
-    region="BANGALORE, INDIA",
-    focus="FinPilot · Communeo",
+    title="SOFTWARE DEVELOPER",
+    interests="AI · COMPUTER VISION · FULL-STACK · NETWORKS",
+    card=[
+        ("ROLE", "Network Operations · Microland (RSM UK)"),
+        ("EDUCATION", "B.Tech CSE · MIT-WPU, Pune"),
+        ("BASED IN", "Bangalore, India"),
+        ("BUILDS", "AI · Computer Vision · Full-Stack"),
+        ("OPEN TO", "AI, vision and full-stack roles"),
+    ],
 )
 
-# GitHub repo descriptions are empty, so each repo gets a short note here.
-# tier: "rare" (featured), "lab" (experiments), "archive"; otherwise repos
-# pushed in the last ACTIVE_DAYS are "active" and the rest "archive".
-# Repos missing from this table still appear, using their GitHub description.
-ACTIVE_DAYS = 90
+# GitHub repo descriptions are empty, so each repo gets a short note here,
+# written from that repo's own README and code. Repos missing from this table
+# still appear in the index, using their GitHub description.
 REPO_NOTES = {
-    "AI": dict(title="FinPilot", blurb="AI personal-finance agent over a real ledger",
-               type="AI · FINTECH", tier="rare", sprite="chart",
-               stack=["Next.js", "FastAPI", "Supabase", "LangGraph"],
-               why="Deterministic finance, LLM only for language: balances and alerts are exact "
-                   "code, and the agent can only call read-only tools on your own data."),
-    "Final-Exam": dict(title="SecureAIExam", blurb="Leak-resistant exam paper platform",
-                       type="SECURITY · FULL-STACK", tier="rare", sprite="shield",
-                       stack=["React Native", "Node.js", "FastAPI", "Supabase"],
-                       why="Follows every question paper from sealing to the exam hall, with a "
-                           "hash-chained audit trail and QR scan-in at each center."),
-    "App": dict(title="Communeo", blurb="Community app for students, devs & founders",
-                type="MOBILE · COMMUNITY", tier="rare", sprite="network",
-                stack=["Flutter", "Dart", "Supabase"],
-                why="One app for networking, hackathon team formation, jobs, mentorship and "
-                    "events, with AI-assisted matching."),
-    "Portfolio": dict(title="Pokédex Portfolio", blurb="Pokémon-inspired developer portfolio",
-                      type="WEB"),
-    "AI_Agent": dict(title="AURA", blurb="Web client for a multi-agent AI assistant",
-                     type="AI · WEB"),
-    "Secure-RAG": dict(title="Secure RAG", blurb="Document Q&A with semantic chunking and a LangGraph retry loop",
-                       type="AI · LLM", tier="lab"),
-    "Path-finder": dict(title="PathFinder", blurb="Assistive navigation from object detection and depth",
-                        type="COMPUTER VISION", tier="lab"),
-    "Tennis-Analysis": dict(title="Tennis Analysis", blurb="Player, ball and court tracking from match video",
-                            type="COMPUTER VISION", tier="lab"),
-    "Tarun-Birthday": dict(title="Birthday Reveal", blurb="Animated birthday celebration site",
-                           type="SIDE QUEST", tier="lab"),
-    "OneCart": dict(title="OneCART", blurb="MERN e-commerce with live chat, voice and video",
-                    type="FULL-STACK"),
-    "StockMarket": dict(blurb="Warehouse and stock management app", type="FULL-STACK"),
-    "ecom": dict(blurb="MERN e-commerce built while following a course", type="LEARNING BUILD"),
-    "Agent": dict(title="FinPilot · early build", blurb="First iteration of the finance agent",
-                  type="AI · FINTECH", tier="archive"),
-    "New-Exam": dict(title="SecureAIExam · early build", blurb="Earlier iteration of the exam platform",
-                     type="SECURITY", tier="archive"),
+    "AI": dict(title="FinPilot", accent=CYAN,
+               blurb="AI personal-finance co-pilot grounded in a real transaction ledger. "
+                     "Balances and alerts are deterministic code; the LLM only explains them.",
+               stack=["Next.js", "FastAPI", "Supabase", "LangGraph"]),
+    "App": dict(title="Communeo", accent=GREEN,
+                blurb="Community platform for students, developers and founders: networking, "
+                      "project collaboration, events and AI-assisted matching.",
+                stack=["Flutter", "Dart", "Supabase"]),
+    "Final-Exam": dict(title="SecureAIExam", accent=RED,
+                       blurb="Secure exam-paper platform with role-based logins, sealed papers, "
+                             "a hash-chained audit trail and QR scan-in at exam centers.",
+                       stack=["React Native", "Node.js", "FastAPI", "Supabase"]),
+    "AI_Agent": dict(title="AURA", accent=PURPLE,
+                     blurb="Multi-agent personal AI platform: a coordinator routes requests to "
+                           "travel, finance, research and calendar agents.",
+                     stack=["React", "TypeScript", "Express", "FastAPI", "Supabase"]),
+    "Portfolio": dict(title="Portfolio", blurb="Pokédex-inspired developer portfolio built with Next.js and GSAP"),
+    "Secure-RAG": dict(title="Secure RAG", blurb="Document Q&A with semantic chunking, ChromaDB and a LangGraph retry loop"),
+    "Path-finder": dict(title="PathFinder", blurb="Assistive navigation for visually impaired users using YOLO and MiDaS depth"),
+    "Tennis-Analysis": dict(title="Tennis Analysis", blurb="Player, ball and court tracking from match video with YOLO and CNNs"),
+    "Tarun-Birthday": dict(blurb="Animated birthday celebration site built with React and Vite"),
+    "OneCart": dict(title="OneCART", blurb="MERN e-commerce store with live chat, voice and video"),
+    "StockMarket": dict(blurb="Warehouse and stock management app with a FastAPI backend"),
+    "ecom": dict(blurb="MERN e-commerce app built while following a course"),
+    "Agent": dict(blurb="Earlier iteration of FinPilot"),
+    "New-Exam": dict(blurb="Earlier iteration of SecureAIExam"),
 }
+FEATURED = ["AI", "App", "Final-Exam", "AI_Agent"]
+PINNED = ["Tennis-Analysis", "Path-finder", "Secure-RAG", "Portfolio"]
 
-TIERS = [
-    ("active", "⚡ ACTIVE BUILDS", "Pushed to in the last 90 days."),
-    ("lab", "◈ EXPERIMENT LAB", "AI, computer-vision and side experiments."),
-    ("archive", "ARCHIVED ENTRIES", "Older builds and earlier iterations."),
-]
-
-# Only technologies that appear in the repositories above or on the résumé.
-TYPES = [
-    dict(slug="electric", type="ELECTRIC", name="Web", color="#f5d35c",
-         items=["TypeScript", "JavaScript", "React", "Next.js", "Node.js", "Express", "Tailwind CSS"]),
-    dict(slug="fire", type="FIRE", name="Backend & Agents", color="#ff7a45",
-         items=["Python", "FastAPI", "LangGraph", "LangChain", "Streamlit"]),
-    dict(slug="psychic", type="PSYCHIC", name="AI & Vision", color="#e0609b",
-         items=["YOLO", "OpenCV", "MiDaS", "CNNs", "LLMs / RAG"]),
-    dict(slug="water", type="WATER", name="Data", color="#4aa8ff",
-         items=["Supabase", "PostgreSQL", "MongoDB", "ChromaDB", "MySQL"]),
-    dict(slug="grass", type="GRASS", name="Mobile", color="#57e08a",
+# Technologies that appear in the repositories above or on the résumé.
+STACK = [
+    dict(slug="web", name="Web Development", tag="ELECTRIC", color=YELLOW,
+         items=["JavaScript", "TypeScript", "React", "Next.js", "Node.js", "Express", "Tailwind CSS"]),
+    dict(slug="backend", name="Backend & AI Agents", tag="FIRE", color="#FF8A4C",
+         items=["Python", "FastAPI", "LangGraph", "LangChain"]),
+    dict(slug="vision", name="AI & Computer Vision", tag="PSYCHIC", color=PURPLE,
+         items=["YOLO", "OpenCV", "MiDaS", "CNNs", "LLMs & RAG"]),
+    dict(slug="data", name="Databases", tag="WATER", color=BLUE,
+         items=["Supabase", "PostgreSQL", "MongoDB", "MySQL", "ChromaDB"]),
+    dict(slug="mobile", name="Mobile Development", tag="GRASS", color=GREEN,
          items=["Flutter", "Dart", "React Native", "Expo"]),
-    dict(slug="steel", type="STEEL", name="Tools & Infra", color="#9aa1b8",
+    dict(slug="infra", name="Tools & Infrastructure", tag="STEEL", color="#9FB0CC",
          items=["Git", "Docker", "Linux", "AWS", "Networking"]),
 ]
 
 JOURNEY = [  # oldest first
     dict(slug="1", period="2021 — 2025", role="B.Tech, Computer Science",
          org="MIT World Peace University, Pune",
-         text="Starter route. Graduated with an 8.61 CGPA; foundations in "
-              "DSA, databases, operating systems, networks and ML."),
+         text="Computer Science and Engineering. Graduated with an 8.61 CGPA."),
     dict(slug="2", period="JUL 2024 — JAN 2025", role="Software Intern",
          org="M3 Technology",
-         text="First gym. Wrote SQL validation and reporting tooling that "
-              "made reporting pipelines faster and more accurate."),
-    dict(slug="3", period="JAN 2026 — PRESENT", role="Network Engineer",
-         org="Microland", now=True,
-         text="Current route. Levelling up in IT infrastructure, cloud and "
-              "system administration."),
+         text="Built SQL validation and reporting tooling for reporting pipelines."),
+    dict(slug="3", period="JAN 2026 — PRESENT", role="Network Operations",
+         org="Microland · RSM UK project", now=True,
+         text="Network infrastructure and operations, plus cloud and system administration."),
 ]
 
 BADGES = [
@@ -152,18 +148,12 @@ BADGES = [
 ]
 
 LINKS = [
-    dict(slug="email", tag="TRANSMIT", label="Email", primary=True),
-    dict(slug="linkedin", tag="CONNECT", label="LinkedIn"),
-    dict(slug="portfolio", tag="LINK", label="Portfolio"),
-    dict(slug="resume", tag="RECORD", label="Résumé"),
+    dict(slug="email", label="Email", color=RED),
+    dict(slug="linkedin", label="LinkedIn", color=BLUE),
+    dict(slug="portfolio", label="Portfolio", color=CYAN),
+    dict(slug="github", label="GitHub", color=PURPLE),
+    dict(slug="resume", label="Résumé", color=GREEN),
 ]
-
-SPRITES = {  # 120x120 line icons for the scanner screen
-    "shield": '<path d="M60 12l34 13v29c0 25-15 42-34 50-19-8-34-25-34-50V25Z"/><circle cx="60" cy="55" r="8"/><path d="M60 63v13" opacity=".7"/>',
-    "chart": '<path d="M16 102h88" opacity=".6"/><path d="M22 84l24-26 18 13 30-38"/><circle cx="94" cy="33" r="6"/><path d="M22 102V88M46 102V70M64 102V80" opacity=".5"/>',
-    "network": '<circle cx="60" cy="28" r="13"/><circle cx="26" cy="90" r="13"/><circle cx="94" cy="90" r="13"/><path d="M53 39L33 79M67 39l20 40M39 90h42" opacity=".6"/>',
-    "repo": '<path d="M30 14h60v92H38a8 8 0 0 1 0-16h52"/><path d="M30 98V22a8 8 0 0 1 8-8" /><path d="M48 34h26M48 50h26" opacity=".6"/>',
-}
 
 
 # ── GitHub data ──────────────────────────────────────────────────────────────
@@ -184,8 +174,8 @@ def _contributions():
     """Read the public contribution calendar (no token needed)."""
     page = _get(f"https://github.com/users/{USER}/contributions", accept="text/html")
     counts = {}
-    for cell, text in re.findall(r'<tool-tip[^>]*for="(contribution-day-component-[\d-]+)"[^>]*>([^<]*)</tool-tip>', page):
-        m = re.match(r"\s*(\d+)", text)
+    for cell, text_ in re.findall(r'<tool-tip[^>]*for="(contribution-day-component-[\d-]+)"[^>]*>([^<]*)</tool-tip>', page):
+        m = re.match(r"\s*(\d+)", text_)
         counts[cell] = int(m.group(1)) if m else 0
     days = []
     for tag in re.findall(r'<td[^>]*class="ContributionCalendar-day"[^>]*>', page):
@@ -230,18 +220,20 @@ def fetch(previous):
 
 
 def repo_view(data):
-    """Repositories with notes, tier and a stable Pokedex number (by creation date)."""
-    today = date.fromisoformat(data["fetched_at"])
+    """Repositories with notes and a stable entry number (by creation date)."""
     repos = [r for r in data["repos"] if not r["fork"] and r["name"] != USER]
     repos.sort(key=lambda r: r["created_at"])
-    out = []
+    out = {}
     for i, r in enumerate(repos, 1):
         note = REPO_NOTES.get(r["name"], {})
-        pushed = date.fromisoformat(r["pushed_at"][:10])
-        tier = note.get("tier") or ("archive" if r["archived"] or (today - pushed).days > ACTIVE_DAYS else "active")
-        out.append(dict(r, no=f"{i:03d}", note=note, tier=tier, pushed=pushed,
-                        blurb=note.get("blurb") or r["description"] or "No description yet",
-                        slug=re.sub(r"[^a-z0-9]+", "-", r["name"].lower()).strip("-")))
+        code = {k: v for k, v in data["languages"].get(r["name"], {}).items() if k not in EXCLUDED_LANGS}
+        if code:  # primary language by code size, ignoring excluded ones
+            r = dict(r, language=max(code, key=code.get))
+        out[r["name"]] = dict(
+            r, no=f"{i:03d}", note=note, pushed=date.fromisoformat(r["pushed_at"][:10]),
+            title=note.get("title") or r["name"],
+            blurb=note.get("blurb") or r["description"] or "No description yet",
+            slug=re.sub(r"[^a-z0-9]+", "-", r["name"].lower()).strip("-"))
     return out
 
 
@@ -249,31 +241,26 @@ def language_share(data):
     totals = {}
     for langs in data["languages"].values():
         for lang, size in langs.items():
+            if lang in EXCLUDED_LANGS:
+                continue
             totals[lang] = totals.get(lang, 0) + size
     whole = sum(totals.values()) or 1
     return sorted(((k, v / whole) for k, v in totals.items()), key=lambda x: -x[1])
 
 
 # ── Drawing helpers ──────────────────────────────────────────────────────────
-MOTION_GUARD = "@media (prefers-reduced-motion:reduce){*{animation:none!important}}"
-DEVICE_CSS = (
-    ".led{animation:l 2.4s ease-in-out infinite}.l2{animation-delay:.4s}.l3{animation-delay:.8s}@keyframes l{50%{opacity:.35}}"
-)
-
-
-def svg(w, h, body, title, css=""):
+def svg(w, h, body, title):
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}" '
-        f'role="img" aria-label="{escape(title)}"><title>{escape(title)}</title>'
-        f"<style>{css}{MOTION_GUARD}</style>{body}</svg>\n"
+        f'role="img" aria-label="{escape(title)}"><title>{escape(title)}</title>{body}</svg>\n'
     )
 
 
-def text(x, y, s, size, fill=INK, font=BODY, weight=400, anchor="start", spacing=0, extra=""):
+def text(x, y, s, size, fill=INK, font=BODY, weight=400, anchor="start", spacing=0):
     ls = f' letter-spacing="{spacing}"' if spacing else ""
     return (
         f'<text x="{x}" y="{y}" font-family="{font}" font-size="{size}" font-weight="{weight}" '
-        f'fill="{fill}" text-anchor="{anchor}"{ls}{extra}>{escape(str(s))}</text>'
+        f'fill="{fill}" text-anchor="{anchor}"{ls}>{escape(str(s))}</text>'
     )
 
 
@@ -292,54 +279,41 @@ def lang_color(lang):
     return LANG_COLORS.get(lang, MUTED)
 
 
-def panel(w, h, uid, rx=20, nebula=True, grid=False):
-    """Dark surface: abyss fill, hairline border, optional red + holo nebula."""
-    out = [
-        f'<defs><clipPath id="{uid}c"><rect width="{w}" height="{h}" rx="{rx}"/></clipPath>'
-        f'<radialGradient id="{uid}r" cx="12%" cy="0%" r="75%"><stop offset="0" stop-color="{RED}" stop-opacity=".30"/>'
-        f'<stop offset="1" stop-color="{RED}" stop-opacity="0"/></radialGradient>'
-        f'<radialGradient id="{uid}h" cx="95%" cy="100%" r="75%"><stop offset="0" stop-color="{HOLO}" stop-opacity=".20"/>'
-        f'<stop offset="1" stop-color="{HOLO}" stop-opacity="0"/></radialGradient>'
-        f'<pattern id="{uid}g" width="28" height="28" patternUnits="userSpaceOnUse">'
-        f'<path d="M28 0H0V28" fill="none" stroke="#ffffff" stroke-opacity=".045"/></pattern></defs>'
-        f'<g clip-path="url(#{uid}c)"><rect width="{w}" height="{h}" fill="{ABYSS}"/>'
-    ]
-    if grid:
-        out.append(f'<rect width="{w}" height="{h}" fill="url(#{uid}g)"/>')
-    if nebula:
-        out.append(f'<rect width="{w}" height="{h}" fill="url(#{uid}r)"/><rect width="{w}" height="{h}" fill="url(#{uid}h)"/>')
-    out.append("</g>")
-    out.append(f'<rect x=".5" y=".5" width="{w - 1}" height="{h - 1}" rx="{rx}" fill="none" stroke="{LINE}"/>')
-    return "".join(out)
-
-
-def ball(cx, cy, r, colors, uid, cls="", shadow=True):
-    """Capsule: glossy coloured top, pearl bottom, dark band."""
-    hi, mid, lo = colors
-    c = f' class="{cls}"' if cls else ""
-    sh = f'<ellipse cy="{r * 1.14:.1f}" rx="{r * .72:.1f}" ry="{r * .1:.1f}" fill="#000" opacity=".45"/>' if shadow else ""
+def card(w, h, uid, accent=CYAN, rx=16):
+    """Dark card: navy gradient, hairline border, accent glow and top edge."""
     return (
-        f'<defs><linearGradient id="{uid}t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{hi}"/>'
-        f'<stop offset=".45" stop-color="{mid}"/><stop offset="1" stop-color="{lo}"/></linearGradient>'
-        f'<linearGradient id="{uid}b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef1f8"/>'
-        f'<stop offset=".58" stop-color="#cfd5e6"/><stop offset="1" stop-color="#aab1c8"/></linearGradient>'
-        f'<radialGradient id="{uid}k" cx="38%" cy="32%" r="70%"><stop offset="0" stop-color="#ffffff"/>'
-        f'<stop offset=".55" stop-color="#d4d9e8"/><stop offset="1" stop-color="#8c93ab"/></radialGradient>'
-        f'<clipPath id="{uid}o"><circle r="{r}"/></clipPath></defs>'
-        f'<g transform="translate({cx} {cy})"><g{c}>{sh}'
-        f'<g clip-path="url(#{uid}o)">'
-        f'<rect x="{-r}" y="{-r}" width="{2 * r}" height="{r}" fill="url(#{uid}t)"/>'
-        f'<rect x="{-r}" y="0" width="{2 * r}" height="{r}" fill="url(#{uid}b)"/>'
-        f'<ellipse cx="{-r * .34:.1f}" cy="{-r * .52:.1f}" rx="{r * .34:.1f}" ry="{r * .2:.1f}" fill="#fff" opacity=".42" transform="rotate(-24 {-r * .34:.1f} {-r * .52:.1f})"/>'
-        f'<rect x="{-r}" y="{-r * .13:.1f}" width="{2 * r}" height="{r * .26:.1f}" fill="#090a12"/>'
-        f"</g>"
-        f'<circle r="{r * .3:.1f}" fill="#090a12"/><circle r="{r * .235:.1f}" fill="#e7ebf5"/>'
-        f'<circle r="{r * .16:.1f}" fill="url(#{uid}k)" stroke="#060710" stroke-width="{max(1, r * .03):.1f}"/>'
-        f"</g></g>"
+        f'<defs><linearGradient id="{uid}bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{BG2}"/>'
+        f'<stop offset="1" stop-color="{CARD}"/></linearGradient>'
+        f'<radialGradient id="{uid}gl" cx="0%" cy="0%" r="90%"><stop offset="0" stop-color="{accent}" stop-opacity=".16"/>'
+        f'<stop offset="1" stop-color="{accent}" stop-opacity="0"/></radialGradient>'
+        f'<linearGradient id="{uid}ed" x1="0" x2="1"><stop offset="0" stop-color="{accent}"/>'
+        f'<stop offset="1" stop-color="{accent}" stop-opacity="0"/></linearGradient></defs>'
+        f'<rect x=".5" y=".5" width="{w - 1}" height="{h - 1}" rx="{rx}" fill="url(#{uid}bg)"/>'
+        f'<rect x=".5" y=".5" width="{w - 1}" height="{h - 1}" rx="{rx}" fill="url(#{uid}gl)"/>'
+        f'<rect x=".5" y=".5" width="{w - 1}" height="{h - 1}" rx="{rx}" fill="none" stroke="{accent}" stroke-opacity=".28"/>'
+        f'<path d="M{rx} 1H{w * .55:.0f}" stroke="url(#{uid}ed)" stroke-width="2" stroke-linecap="round"/>'
     )
 
 
-def chips(x, y, labels, max_w, size=9.5, fill="#dffaf3", stroke=HOLO, row_h=22):
+def ball(cx, cy, r, color, uid):
+    """Poké Ball accent: coloured top, pearl bottom, dark band."""
+    hi, lo = shade(color, .3), shade(color, -.35)
+    return (
+        f'<defs><linearGradient id="{uid}t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{hi}"/>'
+        f'<stop offset=".5" stop-color="{color}"/><stop offset="1" stop-color="{lo}"/></linearGradient>'
+        f'<linearGradient id="{uid}b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F2F5FC"/>'
+        f'<stop offset="1" stop-color="#A9B6D0"/></linearGradient>'
+        f'<clipPath id="{uid}o"><circle r="{r}"/></clipPath></defs>'
+        f'<g transform="translate({cx} {cy})"><g clip-path="url(#{uid}o)">'
+        f'<rect x="{-r}" y="{-r}" width="{2 * r}" height="{r}" fill="url(#{uid}t)"/>'
+        f'<rect x="{-r}" y="0" width="{2 * r}" height="{r}" fill="url(#{uid}b)"/>'
+        f'<ellipse cx="{-r * .34:.1f}" cy="{-r * .5:.1f}" rx="{r * .32:.1f}" ry="{r * .18:.1f}" fill="#fff" opacity=".4"/>'
+        f'<rect x="{-r}" y="{-r * .12:.1f}" width="{2 * r}" height="{r * .24:.1f}" fill="#070B14"/></g>'
+        f'<circle r="{r * .3:.1f}" fill="#070B14"/><circle r="{r * .2:.1f}" fill="#F2F5FC"/></g>'
+    )
+
+
+def chips(x, y, labels, max_w, color=CYAN, size=9.5, row_h=23):
     """Mono pill chips that wrap inside max_w. Returns (svg, height used)."""
     out, cx, cy = [], x, y
     for label in labels:
@@ -347,150 +321,159 @@ def chips(x, y, labels, max_w, size=9.5, fill="#dffaf3", stroke=HOLO, row_h=22):
         if cx + w > x + max_w and cx > x:
             cx, cy = x, cy + row_h
         out.append(
-            f'<rect x="{cx:.1f}" y="{cy}" width="{w:.1f}" height="17" rx="8.5" fill="{stroke}" fill-opacity=".08" '
-            f'stroke="{stroke}" stroke-opacity=".4"/>'
-            + text(f"{cx + w / 2:.1f}", cy + 12, label, size, fill, MONO, 500, "middle")
+            f'<rect x="{cx:.1f}" y="{cy}" width="{w:.1f}" height="18" rx="9" fill="{color}" fill-opacity=".1" '
+            f'stroke="{color}" stroke-opacity=".45"/>'
+            + text(f"{cx + w / 2:.1f}", cy + 12.5, label, size, INK, MONO, 500, "middle")
         )
         cx += w + 6
-    return "".join(out), cy - y + 17
-
-
-def device(w, h, uid, label, screen_h):
-    """Red Pokedex shell with lens, LEDs and a dark scanner screen."""
-    return (
-        f'<defs><linearGradient id="{uid}dv" x1="0" y1="0" x2=".5" y2="1"><stop offset="0" stop-color="#e0241b"/>'
-        f'<stop offset="1" stop-color="#a8120c"/></linearGradient>'
-        f'<linearGradient id="{uid}sc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a1f1c"/>'
-        f'<stop offset="1" stop-color="#06100f"/></linearGradient>'
-        f'<radialGradient id="{uid}ln" cx="36%" cy="32%" r="75%"><stop offset="0" stop-color="#bfe9ff"/>'
-        f'<stop offset=".55" stop-color="#3aa0e6"/><stop offset="1" stop-color="#155a9c"/></radialGradient></defs>'
-        f'<rect x=".5" y=".5" width="{w - 1}" height="{h - 1}" rx="22" fill="url(#{uid}dv)" stroke="#ff6a5e"/>'
-        f'<path d="M22 1.5H{w - 22}" stroke="#fff" stroke-opacity=".3" stroke-linecap="round"/>'
-        f'<circle cx="34" cy="26" r="13" fill="url(#{uid}ln)" stroke="#f2f4fa" stroke-width="2.5"/>'
-        f'<circle cx="62" cy="19" r="4.5" fill="#ff5a52" class="led"/>'
-        f'<circle cx="77" cy="19" r="4.5" fill="#ffd84d" class="led l2"/>'
-        f'<circle cx="92" cy="19" r="4.5" fill="#57e08a" class="led l3"/>'
-        + text(w - 20, 30, label, 10, "#ffe9c2", MONO, 700, "end", 2.2)
-        + f'<rect x="14" y="48" width="{w - 28}" height="{screen_h}" rx="13" fill="url(#{uid}sc)" stroke="#0b0c12" stroke-width="3"/>'
-    )
+    return "".join(out), cy - y + 18
 
 
 def write(name, content):
-    (OUT / name).write_text(content, encoding="utf-8")
-
-
-def month_year(d):
-    return d.strftime("%b %Y")
+    (OUT / name).write_text(content, encoding="utf-8", newline="\n")
 
 
 # ── Panels ───────────────────────────────────────────────────────────────────
-def hero_trainer(data):
-    w, h = 400, 300
-    rnd = random.Random(24)
+def banner():
+    """Original night-sky scene: Poké Ball moon, ridgelines, trainer and companion."""
+    w, h = 840, 280
+    rnd = random.Random(7)
     stars = "".join(
-        f'<circle cx="{rnd.randint(8, w - 8)}" cy="{rnd.randint(8, h - 8)}" r="{rnd.choice([.6, .8, 1.1])}" '
-        f'fill="#fff" opacity="{rnd.choice([.25, .4, .6])}"{" class=\"tw\"" if i % 4 == 0 else ""}/>'
-        for i in range(46)
+        f'<circle cx="{rnd.randint(6, w - 6)}" cy="{rnd.randint(6, 170)}" r="{rnd.choice([.5, .7, .9, 1.2])}" '
+        f'fill="{rnd.choice(["#fff", "#fff", "#BFEFFF", "#D9CCFF"])}" opacity="{rnd.choice([.3, .5, .7, .9])}"/>'
+        for _ in range(120)
+    )
+    pixels = "".join(  # pixel-style sparkles
+        f'<path d="M{x} {y - 4}v8M{x - 4} {y}h8" stroke="{c}" stroke-width="1.6" opacity=".8"/>'
+        for x, y, c in ((442, 54, CYAN), (540, 118, PURPLE), (792, 150, CYAN), (392, 132, "#fff"))
+    )
+    lights = "".join(
+        f'<rect x="{x}" y="{y}" width="2" height="2" fill="{c}" opacity="{o}"/>'
+        for x, y, c, o in ((rnd.randint(300, 830), rnd.randint(196, 212), rnd.choice([YELLOW, CYAN, "#fff"]), rnd.choice([.5, .7, .9]))
+                           for _ in range(46))
+    )
+    trainer = (
+        '<g transform="translate(598 219)" fill="#03060D">'
+        '<rect x="-9" y="-27" width="7" height="28" rx="2"/><rect x="2" y="-27" width="7" height="28" rx="2"/>'
+        '<rect x="-11" y="-53" width="22" height="29" rx="6"/><rect x="-18" y="-51" width="9" height="19" rx="3.5"/>'
+        '<rect x="10" y="-50" width="5" height="22" rx="2.5"/>'
+        '<circle cy="-61" r="8"/><path d="M-9 -63a9 9 0 0 1 18 0Z"/><rect x="4" y="-65" width="11" height="3" rx="1.5"/>'
+        "</g>"
+        '<g transform="translate(634 217)" fill="#03060D">'  # companion: an original creature
+        '<ellipse cy="-9" rx="11" ry="9.5"/><circle cx="4" cy="-21" r="8"/>'
+        '<path d="M-2 -26l3-13 6 10Z"/><path d="M7 -28l6-10 1 13Z"/>'
+        '<path d="M-10 -7q-13-3-9-16 3 6 9 7" stroke="#03060D" stroke-width="4" stroke-linecap="round" fill="none"/>'
+        "</g>"
     )
     body = (
-        panel(w, h, "he", grid=True) + stars
-        + f'<circle cx="200" cy="84" r="68" fill="{HOLO}" opacity=".07" class="glow"/>'
-        + ball(200, 84, 48, (RED_HI, RED, RED_LO), "heb", "float")
-        + text(200, 168, "TRAINER COMMAND CENTER", 10, HOLO, MONO, 500, "middle", 3)
-        + text(200, 204, PROFILE["name"].upper(), 29, "#fff", DISP, 800, "middle", .6)
-        + text(200, 227, PROFILE["tagline"], 9.5, MUTED, MONO, 500, "middle", 1.5)
-        + f'<path d="M60 246H340" stroke="{LINE}"/>'
-        + text(200, 268, "CURRENT FOCUS", 8.5, MUTED_2, MONO, 500, "middle", 2.2)
-        + text(200, 285, PROFILE["focus"], 12.5, INK, DISP, 600, "middle")
+        f'<defs><clipPath id="bnc"><rect width="{w}" height="{h}" rx="18"/></clipPath>'
+        f'<linearGradient id="bnsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#050912"/>'
+        f'<stop offset=".5" stop-color="#0B1630"/><stop offset=".82" stop-color="#1B2356"/><stop offset="1" stop-color="#27306B"/></linearGradient>'
+        f'<radialGradient id="bnglow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="{CYAN}" stop-opacity=".34"/>'
+        f'<stop offset=".5" stop-color="{PURPLE}" stop-opacity=".16"/><stop offset="1" stop-color="{PURPLE}" stop-opacity="0"/></radialGradient>'
+        f'<radialGradient id="bnhalo" cx="50%" cy="50%" r="50%"><stop offset=".3" stop-color="#CFE3FF" stop-opacity=".26"/>'
+        f'<stop offset="1" stop-color="#CFE3FF" stop-opacity="0"/></radialGradient>'
+        f'<linearGradient id="bnmoon" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F4F8FF"/><stop offset="1" stop-color="#A9BDE8"/></linearGradient>'
+        f'<linearGradient id="bnscrim" x1="0" x2="1"><stop offset="0" stop-color="#050912" stop-opacity=".88"/>'
+        f'<stop offset=".5" stop-color="#050912" stop-opacity=".35"/><stop offset=".75" stop-color="#050912" stop-opacity="0"/></linearGradient>'
+        f'<clipPath id="bnmc"><circle cx="704" cy="84" r="42"/></clipPath></defs>'
+        f'<g clip-path="url(#bnc)">'
+        f'<rect width="{w}" height="{h}" fill="url(#bnsky)"/>{stars}{pixels}'
+        f'<ellipse cx="640" cy="222" rx="330" ry="110" fill="url(#bnglow)"/>'
+        # Poké Ball moon
+        f'<circle cx="704" cy="84" r="78" fill="url(#bnhalo)"/>'
+        f'<circle cx="704" cy="84" r="42" fill="url(#bnmoon)"/>'
+        f'<g clip-path="url(#bnmc)"><rect x="660" y="42" width="88" height="42" fill="{RED}" opacity=".5"/>'
+        f'<rect x="660" y="80" width="88" height="8" fill="#1B2550"/></g>'
+        f'<circle cx="704" cy="84" r="12" fill="#1B2550"/><circle cx="704" cy="84" r="7.5" fill="#EEF3FF"/>'
+        # ridgelines, far to near
+        f'<path d="M0 196L70 150 128 182 206 122 282 176 350 140 430 190 512 146 588 186 664 150 742 192 800 166 840 184V280H0Z" fill="#18245A" opacity=".85"/>'
+        f'<path d="M0 216L92 178 168 206 250 164 330 204 420 176 500 210 590 182 690 212 770 190 840 208V280H0Z" fill="#101A40"/>'
+        f"{lights}"
+        f'<path d="M0 240Q160 216 330 234T600 218Q720 208 840 228V280H0Z" fill="#070C1C"/>'
+        f'<path d="M0 262Q200 246 420 258T840 250V280H0Z" fill="#04070F"/>'
+        f"{trainer}"
+        f'<rect width="{w}" height="{h}" fill="url(#bnscrim)"/>'
+        + text(48, 92, PROFILE["title"], 12, CYAN, MONO, 600, spacing=4.5)
+        + text(46, 136, PROFILE["name"].upper(), 41, "#fff", DISP, 800, spacing=.5)
+        + f'<rect x="48" y="152" width="56" height="3" rx="1.5" fill="{RED}"/><rect x="108" y="152" width="20" height="3" rx="1.5" fill="{CYAN}"/>'
+        + text(48, 180, PROFILE["interests"], 11, MUTED, MONO, 500, spacing=1.8)
+        + f'</g><rect x=".5" y=".5" width="{w - 1}" height="{h - 1}" rx="18" fill="none" stroke="{CYAN}" stroke-opacity=".25"/>'
     )
-    css = (
-        ".float{animation:f 5s ease-in-out infinite}@keyframes f{50%{transform:translateY(-6px)}}"
-        ".tw{animation:t 3.2s ease-in-out infinite}@keyframes t{50%{opacity:.05}}"
-        ".glow{animation:g 5s ease-in-out infinite}@keyframes g{50%{opacity:.14}}"
-    )
-    write("hero-trainer.svg", svg(w, h, body, f"Trainer Command Center — {PROFILE['name']}. {PROFILE['tagline'].title()}. Current focus: {PROFILE['focus']}.", css))
+    write("profile-banner.svg", svg(w, h, body, f"{PROFILE['name']} — software developer. A night sky with a Poké Ball moon above mountain ridgelines, where a trainer and a small companion look out over distant lights."))
 
 
-def trainer_id(data, langs):
-    w, h = 400, 300
+def info_card(name, uid, heading, accent, rows, title):
+    w, h = 400, 76 + len(rows) * 30
+    body = card(w, h, uid, accent) + ball(34, 36, 11, accent, uid + "b") + text(54, 40, heading, 10.5, accent, MONO, 600, spacing=2.4)
+    for i, (k, v) in enumerate(rows):
+        y = 78 + i * 30
+        if i:
+            body += f'<path d="M24 {y - 19}H376" stroke="{LINE}"/>'
+        body += text(24, y, k, 8.5, DIM, MONO, 500, spacing=1.4) + text(128, y, v, 12.5, INK, BODY, 500)
+    write(name, svg(w, h, body, title + ": " + "; ".join(f"{k.title()} — {v}" for k, v in rows)))
+
+
+def profile_cards(data, repos, langs):
+    info_card("profile-card.svg", "pc", "TRAINER CARD", CYAN, PROFILE["card"], "Profile")
     joined = datetime.fromisoformat(data["user"]["created_at"].replace("Z", "+00:00"))
-    fields = [
+    latest = max(repos.values(), key=lambda r: r["pushed"])
+    rows = [
         ("HANDLE", f"@{USER}"),
-        ("CLASS", PROFILE["klass"]),
-        ("REGION", PROFILE["region"]),
-        ("TYPES", " · ".join(l.upper() for l, _ in langs[:3])),
-        ("REPOS", f"{data['user']['public_repos']} PUBLIC"),
-        ("SINCE", joined.strftime("%b %Y").upper()),
+        ("REPOSITORIES", f"{data['user']['public_repos']} public"),
+        ("TOP LANGUAGES", " · ".join(l for l, _ in langs[:3])),
+        ("MEMBER SINCE", joined.strftime("%B %Y")),
+        ("LATEST PUSH", f"{latest['name']} · {latest['pushed'].strftime('%d %b %Y')}"),
     ]
-    step = 29
-    rows = "".join(
-        f'<path d="M40 {93 + i * step}H360" stroke="{HOLO}" stroke-opacity=".1"/>'
-        + text(40, 82 + i * step, k, 9.5, "#5fa89d", MONO, 500, spacing=1.8)
-        + text(118, 82 + i * step, v, 11.5, "#dffaf3", MONO, 500, spacing=.3)
-        for i, (k, v) in enumerate(fields)
-    )
-    y = 82 + len(fields) * step
-    body = (
-        device(w, h, "ti", "TRAINER ID", 238)
-        + f'<defs><clipPath id="tic"><rect x="14" y="48" width="372" height="238" rx="13"/></clipPath></defs>'
-        + rows
-        + text(40, y, "STATUS", 9.5, "#5fa89d", MONO, 500, spacing=1.8)
-        + f'<circle cx="123" cy="{y - 4}" r="4" fill="#57e08a" class="led"/>'
-        + text(135, y, "OPEN TO TEAM-UPS", 11.5, "#9affe6", MONO, 700, spacing=.3)
-        + f'<g clip-path="url(#tic)"><rect x="14" y="46" width="372" height="2" fill="{HOLO}" opacity=".3" class="scan"/></g>'
-    )
-    css = DEVICE_CSS + ".scan{animation:s 5s linear infinite}@keyframes s{to{transform:translateY(240px)}}"
-    label = "; ".join(f"{k.title()}: {v}" for k, v in fields)
-    write("trainer-id.svg", svg(w, h, body, f"Trainer ID — {label}; Status: open to team-ups", css))
+    info_card("github-card.svg", "gc", "GITHUB ID", PURPLE, rows, "GitHub")
 
 
 def divider():
     w, h = 840, 28
     body = (
-        f'<defs><linearGradient id="dl" x1="0" x2="1"><stop offset="0" stop-color="{RED}" stop-opacity="0"/>'
-        f'<stop offset="1" stop-color="{RED}"/></linearGradient>'
-        f'<linearGradient id="dr" x1="0" x2="1"><stop offset="0" stop-color="{HOLO}"/>'
-        f'<stop offset="1" stop-color="{HOLO}" stop-opacity="0"/></linearGradient></defs>'
+        f'<defs><linearGradient id="dl" x1="0" x2="1"><stop offset="0" stop-color="{CYAN}" stop-opacity="0"/>'
+        f'<stop offset="1" stop-color="{CYAN}"/></linearGradient>'
+        f'<linearGradient id="dr" x1="0" x2="1"><stop offset="0" stop-color="{PURPLE}"/>'
+        f'<stop offset="1" stop-color="{PURPLE}" stop-opacity="0"/></linearGradient></defs>'
         f'<rect x="60" y="13" width="336" height="2" rx="1" fill="url(#dl)"/>'
         f'<rect x="444" y="13" width="336" height="2" rx="1" fill="url(#dr)"/>'
-        + ball(420, 14, 11, (RED_HI, RED, RED_LO), "dv", shadow=False)
+        + ball(420, 14, 10, RED, "dv")
     )
-    write("divider.svg", svg(w, h, body, "Section divider"))
+    write("pokeball-divider.svg", svg(w, h, body, "Section divider"))
 
 
 def stat_tiles(data, langs):
     """Four tiles of real numbers; anything that is zero is skipped."""
     stars = sum(r["stargazers_count"] for r in data["repos"])
     candidates = [
-        (data["user"]["public_repos"], "REPOSITORIES", RED_HI),
-        (data["contributions"]["total"], "CONTRIBUTIONS · 1 YR", HOLO),
-        (data["commits"], "COMMITS", GOLD),
-        (stars, "STARS EARNED", GOLD),
-        (data["prs"], "PULL REQUESTS", HOLO),
-        (data["user"]["followers"], "FOLLOWERS", RED_HI),
-        (data["issues"], "ISSUES OPENED", INK),
-        (len(langs), "LANGUAGES", INK),
+        (data["user"]["public_repos"], "PUBLIC REPOSITORIES", CYAN),
+        (data["contributions"]["total"], "CONTRIBUTIONS · 1 YR", GREEN),
+        (data["commits"], "COMMITS", PURPLE),
+        (stars, "STARS EARNED", YELLOW),
+        (data["prs"], "PULL REQUESTS", BLUE),
+        (data["user"]["followers"], "FOLLOWERS", RED),
+        (sum(1 for _, p in langs if p >= .01), "LANGUAGES", BLUE),
     ]
     tiles = [c for c in candidates if c[0]][:4]
     w, h = 196, 92
     for i, (value, label, color) in enumerate(tiles):
         body = (
-            panel(w, h, f"st{i}", rx=16, nebula=False)
-            + f'<rect x="18" y="20" width="3" height="52" rx="1.5" fill="{color}"/>'
-            + text(34, 52, f"{value:,}", 32, "#fff", DISP, 800, spacing=-.5)
-            + text(34, 72, label, 9, MUTED, MONO, 500, spacing=1.4)
+            card(w, h, f"st{i}", color, rx=14)
+            + f'<rect x="18" y="22" width="3" height="50" rx="1.5" fill="{color}"/>'
+            + text(34, 52, f"{value:,}", 31, "#fff", DISP, 800, spacing=-.5)
+            + text(34, 72, label, 8.5, MUTED, MONO, 500, spacing=1.2)
         )
         write(f"stat-{i + 1}.svg", svg(w, h, body, f"{value:,} {label.title()}"))
     return [f"{v:,} {l.lower()}" for v, l, _ in tiles]
 
 
 def activity_map(data):
-    """The real contribution calendar, drawn on the scanner screen."""
+    """The real contribution calendar from github.com."""
     days = data["contributions"]["days"]
     total = data["contributions"]["total"]
     first = date.fromisoformat(days[0]["date"])
     start = first - timedelta(days=(first.weekday() + 1) % 7)  # back to Sunday
-    w, h, x0, y0, step, cell = 840, 276, 50, 106, 14.6, 11.5
+    w, h, x0, y0, step, cell = 840, 248, 50, 78, 14.6, 11.5
     cells, months, seen = "", "", None
     for d in days:
         dt = date.fromisoformat(d["date"])
@@ -498,10 +481,10 @@ def activity_map(data):
         x, y = x0 + col * step, y0 + row * step
         cells += f'<rect x="{x:.1f}" y="{y:.1f}" width="{cell}" height="{cell}" rx="2.5" fill="{MAP_LEVELS[d["level"]]}"/>'
         if dt.month != seen and dt.day <= 7 and col < 52:
-            months += text(f"{x:.1f}", y0 - 10, dt.strftime("%b").upper(), 8.5, "#5fa89d", MONO, 500, spacing=1)
+            months += text(f"{x:.1f}", y0 - 10, dt.strftime("%b").upper(), 8.5, DIM, MONO, 500, spacing=1)
             seen = dt.month
     weekdays = "".join(
-        text(x0 - 9, y0 + r * step + 9, n, 8, "#5fa89d", MONO, 500, "end")
+        text(x0 - 9, y0 + r * step + 9, n, 8, DIM, MONO, 500, "end")
         for r, n in ((1, "MON"), (3, "WED"), (5, "FRI"))
     )
     active = [d for d in days if d["count"]]
@@ -514,24 +497,25 @@ def activity_map(data):
     if best["count"]:
         facts.append(("BEST DAY", f"{best['count']} · {date.fromisoformat(best['date']).strftime('%d %b').upper()}"))
     if active:
-        facts.append(("LAST SEEN", date.fromisoformat(active[-1]["date"]).strftime("%d %b %Y").upper()))
-    fx, fact_svg = 34, ""
+        facts.append(("LATEST", date.fromisoformat(active[-1]["date"]).strftime("%d %b %Y").upper()))
+    fx, fact_svg = 28, ""
     for k, v in facts:
-        fact_svg += text(fx, 236, k, 8, "#5fa89d", MONO, 500, spacing=1.4) + text(fx, 252, v, 11.5, "#dffaf3", MONO, 700, spacing=.4)
+        fact_svg += text(fx, 208, k, 8, DIM, MONO, 500, spacing=1.4) + text(fx, 225, v, 11.5, INK, MONO, 700, spacing=.4)
         fx += max(mono_w(k, 8) + len(k) * 1.4, mono_w(v, 11.5)) + 30
-    legend = text(672, 248, "LESS", 8, "#5fa89d", MONO, 500, "end", 1) + "".join(
-        f'<rect x="{680 + i * 15}" y="238" width="11.5" height="11.5" rx="2.5" fill="{c}"/>' for i, c in enumerate(MAP_LEVELS)
-    ) + text(760, 248, "MORE", 8, "#5fa89d", MONO, 500, spacing=1)
+    legend = text(676, 220, "LESS", 8, DIM, MONO, 500, "end", 1) + "".join(
+        f'<rect x="{684 + i * 15}" y="210" width="11.5" height="11.5" rx="2.5" fill="{c}"/>' for i, c in enumerate(MAP_LEVELS)
+    ) + text(764, 220, "MORE", 8, DIM, MONO, 500, spacing=1)
     body = (
-        device(w, h, "am", "TRAINER ACTIVITY", 214)
-        + text(34, 74, "CONTRIBUTION MAP · LAST 12 MONTHS", 9.5, HOLO, MONO, 500, spacing=2)
-        + text(w - 34, 75, f"{total:,} CONTRIBUTIONS", 12, "#fff", MONO, 700, "end", 1)
+        card(w, h, "am", CYAN)
+        + ball(36, 36, 11, RED, "amb")
+        + text(56, 40, "CONTRIBUTION MAP · LAST 12 MONTHS", 10.5, CYAN, MONO, 600, spacing=2)
+        + text(w - 28, 40, f"{total:,} CONTRIBUTIONS", 12, "#fff", MONO, 700, "end", 1)
         + months + weekdays + cells
-        + f'<path d="M34 220H{w - 34}" stroke="{HOLO}" stroke-opacity=".12"/>'
+        + f'<path d="M28 190H{w - 28}" stroke="{LINE}"/>'
         + fact_svg + legend
     )
     summary = ", ".join(f"{k.lower()} {v.lower()}" for k, v in facts)
-    write("activity-map.svg", svg(w, h, body, f"Contribution map: {total} contributions in the last 12 months; {summary}.", DEVICE_CSS))
+    write("activity-map.svg", svg(w, h, body, f"Contribution map: {total} contributions in the last 12 months; {summary}."))
 
 
 def language_panel(langs):
@@ -539,22 +523,22 @@ def language_panel(langs):
     top = langs[:6]
     scale = sum(p for _, p in top) or 1
     x, bar = 24.0, ""
-    for i, (lang, p) in enumerate(top):
+    for lang, p in top:
         bw = 352 * p / scale
-        bar += f'<rect x="{x:.1f}" y="60" width="{max(bw - 2, 1):.1f}" height="12" rx="3" fill="{lang_color(lang)}"/>'
+        bar += f'<rect x="{x:.1f}" y="62" width="{max(bw - 2, 1):.1f}" height="12" rx="3" fill="{lang_color(lang)}"/>'
         x += bw
     legend = ""
     for i, (lang, p) in enumerate(top):
-        lx, ly = 24 + (i % 2) * 180, 104 + (i // 2) * 28
+        lx, ly = 24 + (i % 2) * 182, 106 + (i // 2) * 28
         legend += (
             f'<circle cx="{lx + 5}" cy="{ly - 4}" r="5" fill="{lang_color(lang)}"/>'
             + text(lx + 18, ly, lang, 12, INK, BODY, 500)
-            + text(lx + 160, ly, f"{p * 100:.1f}%", 11, MUTED, MONO, 500, "end")
+            + text(lx + 164, ly, f"{p * 100:.1f}%", 11, MUTED, MONO, 500, "end")
         )
     body = (
-        panel(w, h, "lg", nebula=False)
-        + text(24, 34, "MOST USED TYPES", 10, HOLO, MONO, 500, spacing=2.4)
-        + text(376, 34, "BY CODE SIZE", 8.5, MUTED_2, MONO, 500, "end", 1.4)
+        card(w, h, "lg", BLUE)
+        + text(24, 38, "MOST USED LANGUAGES", 10.5, BLUE, MONO, 600, spacing=2.2)
+        + text(376, 38, "BY CODE SIZE", 8.5, DIM, MONO, 500, "end", 1.4)
         + bar + legend
     )
     summary = ", ".join(f"{l} {p * 100:.1f}%" for l, p in top)
@@ -563,154 +547,96 @@ def language_panel(langs):
 
 def recent_panel(repos):
     w, h = 400, 196
-    latest = sorted(repos, key=lambda r: r["pushed"], reverse=True)[:4]
+    latest = sorted(repos.values(), key=lambda r: r["pushed"], reverse=True)[:4]
     rows = ""
     for i, r in enumerate(latest):
-        y = 68 + i * 33
-        lang = r["language"] or "—"
+        y = 72 + i * 33
+        if i:
+            rows += f'<path d="M24 {y - 21}H376" stroke="{LINE}"/>'
         rows += (
-            f'<path d="M24 {y + 12}H376" stroke="{LINE}"/>' * (i < 3)
-            + text(24, y, f"#{r['no']}", 9.5, MUTED_2, MONO, 500, spacing=1)
+            text(24, y, f"#{r['no']}", 9.5, DIM, MONO, 500, spacing=1)
             + text(64, y, r["name"], 13, "#fff", DISP, 600)
-            + f'<circle cx="222" cy="{y - 4}" r="4.5" fill="{lang_color(r["language"])}"/>'
-            + text(232, y, lang, 10.5, MUTED, BODY)
-            + text(376, y, r["pushed"].strftime("%d %b").upper(), 10, HOLO, MONO, 500, "end", .6)
+            + f'<circle cx="212" cy="{y - 4}" r="4.5" fill="{lang_color(r["language"])}"/>'
+            + text(222, y, r["language"] or "—", 10.5, MUTED, BODY)
+            + text(376, y, r["pushed"].strftime("%d %b").upper(), 10, GREEN, MONO, 500, "end", .6)
         )
     body = (
-        panel(w, h, "rc", nebula=False)
-        + text(24, 34, "LAST SEEN IN", 10, HOLO, MONO, 500, spacing=2.4)
-        + text(376, 34, "LATEST PUSHES", 8.5, MUTED_2, MONO, 500, "end", 1.4)
+        card(w, h, "rc", GREEN)
+        + text(24, 38, "RECENT ACTIVITY", 10.5, GREEN, MONO, 600, spacing=2.2)
+        + text(376, 38, "LATEST PUSHES", 8.5, DIM, MONO, 500, "end", 1.4)
         + rows
     )
     summary = "; ".join(f"{r['name']} ({r['pushed'].strftime('%d %b %Y')})" for r in latest)
     write("recent.svg", svg(w, h, body, f"Most recently pushed repositories: {summary}"))
 
 
-def repo_cards(repos):
-    """One Pokedex entry per repository, using live GitHub fields."""
-    w, h = 400, 160
-    for r in (r for r in repos if r["tier"] != "rare"):
-        note, uid = r["note"], "r" + r["no"]
-        base = lang_color(r["language"])
-        colors = (shade(base, .35), base, shade(base, -.4))
-        heading = note.get("title")
-        y = 56
-        head_svg = text(120, 50, r["name"], 20, "#fff", DISP, 700)
-        if heading and heading.lower().replace(" ", "") != r["name"].lower().replace("-", "").replace("_", ""):
-            head_svg += text(120, 68, heading, 11.5, HOLO_SOFT, DISP, 600)
-            y = 74
-        blurb = "".join(text(120, y + 15 + k * 15, ln, 11.5, MUTED, BODY)
-                        for k, ln in enumerate(textwrap.wrap(r["blurb"], 42)[:2]))
-        meta = [r["language"] or "No language"]
-        if r["stargazers_count"]:
-            meta.append(f"★ {r['stargazers_count']}")
-        if r["forks_count"]:
-            meta.append(f"⑂ {r['forks_count']}")
-        tw = mono_w(note.get("type", ""), 8.5) + len(note.get("type", "")) * .8 + 18
-        type_pill = (
-            f'<rect x="{376 - tw:.1f}" y="16" width="{tw:.1f}" height="18" rx="9" fill="none" stroke="{HOLO}" stroke-opacity=".4"/>'
-            + text(f"{376 - tw / 2:.1f}", 28.5, note["type"], 8.5, HOLO, MONO, 500, "middle", .8)
-        ) if note.get("type") else ""
-        body = (
-            panel(w, h, uid)
-            + f'<circle cx="60" cy="74" r="46" fill="{base}" opacity=".09"/>'
-            + ball(60, 74, 34, colors, uid + "b", "wob")
-            + text(120, 29, f"#{r['no']}", 10, MUTED, MONO, 500, spacing=2)
-            + type_pill + head_svg + blurb
-            + f'<path d="M120 126H376" stroke="{LINE}"/>'
-            + f'<circle cx="125" cy="140" r="4.5" fill="{base}"/>'
-            + text(136, 144, "  ·  ".join(meta), 10.5, INK, BODY, 500)
-            + text(376, 144, f"UPDATED {month_year(r['pushed']).upper()}", 8.5, MUTED_2, MONO, 500, "end", .8)
-        )
-        css = ".wob{animation:w 6s ease-in-out infinite}@keyframes w{0%,84%,100%{transform:rotate(0)}88%{transform:rotate(-9deg)}92%{transform:rotate(7deg)}96%{transform:rotate(-3deg)}}"
-        write(f"repo-{r['slug']}.svg", svg(w, h, body, repo_alt(r), css))
-
-
 def repo_alt(r):
-    bits = [f"#{r['no']} {r['name']}"]
-    if r["note"].get("title"):
-        bits.append(r["note"]["title"])
-    bits.append(r["blurb"])
-    bits.append(f"{r['language'] or 'No language'}, updated {month_year(r['pushed'])}")
-    return " — ".join(bits)
+    stack = r["note"].get("stack")
+    tail = f" Built with {', '.join(stack)}." if stack else ""
+    return f"{r['title']} ({USER}/{r['name']}) — {r['blurb']}{tail}"
 
 
-def rare_devices(repos):
-    """Featured repositories on the large scanner."""
-    w, h = 600, 246
-    for r in (r for r in repos if r["tier"] == "rare"):
-        note, uid = r["note"], "d" + r["no"]
-        y = 126
-        sub = ""
-        for line in textwrap.wrap(r["blurb"].upper(), 38):
-            sub += text(214, y, line, 10.5, HOLO, MONO, 500, spacing=.6)
-            y += 15
-        chip_svg, _ = chips(214, y + 8, note.get("stack", []), 350)
+def featured_cards(repos):
+    w, h = 400, 214
+    for name in FEATURED:
+        r = repos.get(name)
+        if not r:
+            continue
+        note, uid = r["note"], "f" + r["no"]
+        accent = note.get("accent", CYAN)
+        desc = "".join(text(24, 102 + k * 17, ln, 12, MUTED, BODY)
+                       for k, ln in enumerate(textwrap.wrap(r["blurb"], 56)[:3]))
+        chip_svg, _ = chips(24, 150, note.get("stack", []), 352, accent)
         body = (
-            device(w, h, uid, "★ RARE ENCOUNTER", 162)
-            + f'<defs><radialGradient id="{uid}vi" cx="50%" cy="0%" r="110%"><stop offset="0" stop-color="#0d2a26"/>'
-            f'<stop offset="1" stop-color="#061312"/></radialGradient>'
-            f'<clipPath id="{uid}vc"><rect x="30" y="64" width="160" height="130" rx="10"/></clipPath></defs>'
-            f'<rect x="30" y="64" width="160" height="130" rx="10" fill="url(#{uid}vi)" stroke="{HOLO}" stroke-opacity=".25"/>'
-            f'<g transform="translate(64 82) scale(.77)" fill="none" stroke="{HOLO_SOFT}" stroke-width="3" '
-            f'stroke-linecap="round" stroke-linejoin="round">{SPRITES[note.get("sprite", "repo")]}</g>'
-            f'<g clip-path="url(#{uid}vc)"><rect x="30" y="60" width="160" height="2" fill="{HOLO}" opacity=".7" class="scan"/></g>'
-            + text(40, 80, f"#{r['no']}", 9.5, HOLO, MONO, 500, spacing=1.6)
-            + text(214, 84, f"{USER}/{r['name']}", 10, "#5fa89d", MONO, 500, spacing=.6)
-            + text(w - 30, 84, (r["language"] or "").upper(), 9.5, MUTED, MONO, 500, "end", 1)
-            + text(214, 110, note.get("title", r["name"]), 25, "#fff", DISP, 800)
-            + sub + chip_svg
-            + f'<rect x="20" y="218" width="20" height="20" rx="5" fill="#0f1016"/>'
-            f'<path d="M30 221v14M23 228h14" stroke="#2b2e3a" stroke-width="3.5" stroke-linecap="round"/>'
-            + "".join(f'<rect x="{54 + i * 8}" y="225" width="4" height="6" rx="1" fill="#7a0f0a"/>' for i in range(58))
-            + f'<circle cx="{w - 58}" cy="228" r="10" fill="#23b48f"/>' + text(w - 58, 231.5, "A", 9, "#fff", MONO, 700, "middle")
-            + f'<circle cx="{w - 30}" cy="228" r="10" fill="#e0991f"/>' + text(w - 30, 231.5, "B", 9, "#fff", MONO, 700, "middle")
+            card(w, h, uid, accent)
+            + ball(34, 36, 11, accent, uid + "b")
+            + text(54, 40, f"ENTRY #{r['no']}", 9.5, accent, MONO, 600, spacing=2)
+            + text(376, 40, f"{USER}/{r['name']}", 9.5, DIM, MONO, 500, "end", .4)
+            + text(24, 78, r["title"], 22, "#fff", DISP, 800)
+            + desc + chip_svg
+            + f'<path d="M24 180H376" stroke="{LINE}"/>'
+            + f'<circle cx="29" cy="194" r="4.5" fill="{lang_color(r["language"])}"/>'
+            + text(40, 198, r["language"] or "—", 10.5, INK, BODY, 500)
+            + text(376, 198, "OPEN REPOSITORY ↗", 9, accent, MONO, 600, "end", 1.2)
         )
-        css = DEVICE_CSS + ".scan{animation:s 3.6s linear infinite}@keyframes s{to{transform:translateY(134px)}}"
-        write(f"rare-{r['slug']}.svg", svg(w, h, body, f"Rare encounter — {repo_alt(r)}", css))
+        write(f"project-{r['slug']}.svg", svg(w, h, body, repo_alt(r)))
 
 
-def type_panels():
+def stack_cards():
     w = 268
-    h = 108 + max(chips(22, 108, t["items"], 226, size=10, row_h=24)[1] for t in TYPES) + 22
-    for t in TYPES:
-        c = t["color"]
-        chip_svg, _ = chips(22, 108, t["items"], 226, size=10, fill=INK, stroke=c, row_h=24)
-        tw = mono_w(t["type"], 9) + len(t["type"]) * 1.6 + 22
+    h = 76 + max(chips(22, 76, s["items"], 226, size=10, row_h=24)[1] for s in STACK) + 20
+    for s in STACK:
+        c = s["color"]
+        chip_svg, _ = chips(22, 76, s["items"], 226, c, size=10, row_h=24)
         body = (
-            panel(w, h, t["slug"], nebula=False)
-            + f'<circle cx="46" cy="50" r="30" fill="{c}" opacity=".13"/>'
-            + ball(46, 50, 21, (shade(c, .3), c, shade(c, -.35)), t["slug"] + "b")
-            + f'<rect x="84" y="28" width="{tw:.1f}" height="19" rx="9.5" fill="{c}" fill-opacity=".14" stroke="{c}" stroke-opacity=".6"/>'
-            + text(f"{84 + tw / 2:.1f}", 41, t["type"], 9, c, MONO, 700, "middle", 1.6)
-            + text(84, 68, t["name"], 15, "#fff", DISP, 700)
-            + f'<path d="M22 92H246" stroke="{LINE}"/>'
+            card(w, h, s["slug"], c)
+            + ball(36, 38, 13, c, s["slug"] + "b")
+            + text(60, 35, s["name"], 14, "#fff", DISP, 700)
+            + text(60, 51, f"{s['tag']} TYPE", 8, c, MONO, 600, spacing=1.8)
             + chip_svg
         )
-        write(f"type-{t['slug']}.svg", svg(w, h, body, f"{t['type'].title()} type · {t['name']}: {', '.join(t['items'])}"))
+        write(f"stack-{s['slug']}.svg", svg(w, h, body, f"{s['name']}: {', '.join(s['items'])}"))
 
 
 def route_cards():
-    w, h = 268, 208
+    w, h = 268, 178
     for i, j in enumerate(JOURNEY):
         now = j.get("now")
-        c = RED_HI if now else HOLO
-        lines = textwrap.wrap(j["text"], 38)
-        desc = "".join(text(22, 128 + k * 16, ln, 11.5, MUTED, BODY) for k, ln in enumerate(lines))
+        c = GREEN if now else CYAN
+        desc = "".join(text(22, 124 + k * 16, ln, 11.5, MUTED, BODY)
+                       for k, ln in enumerate(textwrap.wrap(j["text"], 38)[:3]))
         first, last = i == 0, i == len(JOURNEY) - 1
         body = (
-            panel(w, h, "rt" + j["slug"], nebula=False)
-            + f'<path d="M{22 if first else 0} 36H{w if not last else 30}" stroke="{LINE}" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round"/>'
-            + f'<circle cx="30" cy="36" r="13" fill="{c}" opacity=".16"{" class=\"pulse\"" if now else ""}/>'
-            + f'<circle cx="30" cy="36" r="6" fill="{ABYSS}" stroke="{c}" stroke-width="2.5"/>'
-            + (f'<circle cx="30" cy="36" r="2.2" fill="{c}"/>' if now else "")
-            + text(246, 40, j["period"], 9.5, c, MONO, 500, "end", 1.2)
-            + text(22, 78, j["role"], 16.5, "#fff", DISP, 700)
-            + text(22, 99, j["org"], 12, RED_HI if now else INK, BODY, 500)
+            card(w, h, "rt" + j["slug"], c)
+            + f'<path d="M{30 if first else 0} 36H{w if not last else 30}" stroke="{LINE}" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round"/>'
+            + ball(30, 36, 9, RED if now else c, "rtb" + j["slug"])
+            + text(246, 40, j["period"], 9.5, c, MONO, 600, "end", 1.2)
+            + (text(246, 56, "CURRENT", 8, GREEN, MONO, 600, "end", 1.6) if now else "")
+            + text(22, 80, j["role"], 16, "#fff", DISP, 700)
+            + text(22, 100, j["org"], 12, INK, BODY, 500)
             + desc
         )
-        css = ".pulse{animation:p 2.2s ease-in-out infinite;transform-origin:30px 36px}@keyframes p{50%{transform:scale(1.5);opacity:.05}}"
-        write(f"route-{j['slug']}.svg", svg(w, h, body, f"{j['period']}: {j['role']}, {j['org']}. {j['text']}", css))
+        write(f"route-{j['slug']}.svg", svg(w, h, body, f"{j['period']}: {j['role']}, {j['org']}. {j['text']}"))
 
 
 def badge_medals():
@@ -723,93 +649,78 @@ def badge_medals():
         else:
             shape = '<path d="M98 26l26 9 12 25-12 34-26 16-26-16-12-34 12-25Z"'
             glyph = '<path d="M84 68l10 10 19-21" fill="none" stroke="#3a2a05" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>'
-        lines = textwrap.wrap(b["title"], 24)
-        title = "".join(text(98, 144 + k * 15, ln, 11.5, INK, DISP, 600, "middle") for k, ln in enumerate(lines))
+        title = "".join(text(98, 144 + k * 15, ln, 11.5, INK, DISP, 600, "middle")
+                        for k, ln in enumerate(textwrap.wrap(b["title"], 24)))
         body = (
-            panel(w, h, uid, rx=16, nebula=False)
-            + f'<defs><linearGradient id="{uid}m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0b8"/>'
-            f'<stop offset=".45" stop-color="{GOLD}"/><stop offset="1" stop-color="#b9741f"/></linearGradient></defs>'
-            f'<circle cx="98" cy="68" r="46" fill="{GOLD}" opacity=".08"/>'
-            f'{shape} fill="url(#{uid}m)" stroke="#fff0b8" stroke-opacity=".7" stroke-width="1.2" stroke-linejoin="round" class="shine"/>'
+            card(w, h, uid, YELLOW, rx=14)
+            + f'<defs><linearGradient id="{uid}m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF0B8"/>'
+            f'<stop offset=".45" stop-color="{YELLOW}"/><stop offset="1" stop-color="#B9741F"/></linearGradient></defs>'
+            f'{shape} fill="url(#{uid}m)" stroke="#FFF0B8" stroke-opacity=".7" stroke-width="1.2" stroke-linejoin="round"/>'
             + glyph
-            + text(98, 126, b["kind"], 8.5, GOLD, MONO, 500, "middle", 2)
+            + text(98, 126, b["kind"], 8.5, YELLOW, MONO, 600, "middle", 2)
             + title
             + text(98, h - 12, b["sub"], 8.5, MUTED, MONO, 400, "middle")
         )
-        css = ".shine{animation:sh 5s ease-in-out infinite}@keyframes sh{50%{filter:brightness(1.18)}}"
-        write(f"badge-{b['slug']}.svg", svg(w, h, body, f"{b['kind'].title()}: {b['title']} — {b['sub']}", css))
+        write(f"badge-{b['slug']}.svg", svg(w, h, body, f"{b['kind'].title()}: {b['title']} — {b['sub']}"))
 
 
 def link_buttons():
-    w, h = 196, 58
+    w, h = 160, 52
     for l in LINKS:
-        primary = l.get("primary")
-        uid = "ln" + l["slug"]
-        if primary:
-            bg = (
-                f'<defs><linearGradient id="{uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{RED_HI}"/>'
-                f'<stop offset="1" stop-color="{RED}"/></linearGradient></defs>'
-                f'<rect x=".5" y=".5" width="{w - 1}" height="{h - 1}" rx="14" fill="url(#{uid})" stroke="#ff6a5e"/>'
-            )
-        else:
-            bg = panel(w, h, uid, rx=14, nebula=False)
+        c = l["color"]
         body = (
-            bg
-            + text(18, 24, f"[ {l['tag']} ]", 9, "#ffe1dd" if primary else HOLO, MONO, 500, spacing=1.6)
-            + text(18, 44, l["label"], 15, "#fff", DISP, 700)
-            + text(w - 18, 40, "↗", 16, "#fff" if primary else MUTED, BODY, 400, "end")
+            card(w, h, "ln" + l["slug"], c, rx=12)
+            + ball(26, 26, 9, c, "lnb" + l["slug"])
+            + text(46, 31, l["label"], 14, "#fff", DISP, 700)
+            + text(w - 16, 31, "↗", 14, c, BODY, 400, "end")
         )
-        write(f"link-{l['slug']}.svg", svg(w, h, body, f"{l['tag'].title()} — {l['label']}"))
+        write(f"link-{l['slug']}.svg", svg(w, h, body, l["label"]))
 
 
-# ── README repository index ──────────────────────────────────────────────────
-def card_html(r):
-    return (f'  <a href="{r["html_url"]}"><img src="assets/repo-{r["slug"]}.svg" width="400" '
-            f'alt="{escape(repo_alt(r), quote=True)}"></a>')
+# ── README generated regions ─────────────────────────────────────────────────
+def featured_html(repos):
+    out = ['<p align="center">']
+    for name in FEATURED:
+        r = repos.get(name)
+        if r:
+            out.append(f'  <a href="{r["html_url"]}"><img src="assets/project-{r["slug"]}.svg" width="400" '
+                       f'alt="{escape(repo_alt(r), quote=True)}"></a>')
+    out.append("</p>")
+    demos = [f'<a href="{repos[n]["homepage"]}">{escape(repos[n]["title"])} live demo</a>'
+             for n in FEATURED if n in repos and repos[n]["homepage"]]
+    if demos:
+        out.append(f'<p align="center"><sub>{" · ".join(demos)}</sub></p>')
+    return "\n".join(out)
 
 
-def repo_index(repos):
-    out = []
-    for r in sorted((r for r in repos if r["tier"] == "rare"), key=lambda r: r["pushed"], reverse=True):
-        note = r["note"]
-        links = f'<a href="{r["html_url"]}"><b>[ OPEN REPOSITORY ]</b></a>'
-        if r["homepage"]:
-            links += f' &nbsp; <a href="{r["homepage"]}"><b>[ LIVE DEMO ]</b></a>'
-        out += [
-            '<p align="center">',
-            f'  <a href="{r["html_url"]}"><img src="assets/rare-{r["slug"]}.svg" width="600" '
-            f'alt="{escape("Rare encounter — " + repo_alt(r), quote=True)}"></a>',
-            "</p>",
-            '<p align="center">',
-            f'  {escape(note.get("why", r["blurb"]))}<br>',
-            f"  {links}",
-            "</p>",
-            "",
-        ]
-    for key, label, hint in TIERS:
-        group = sorted((r for r in repos if r["tier"] == key), key=lambda r: r["pushed"], reverse=True)
-        if not group:
-            continue
-        cards = ['<p align="center">'] + [card_html(r) for r in group] + ["</p>"]
-        live = [f'<a href="{r["homepage"]}">{escape(r["name"])} ↗</a>' for r in group if r["homepage"]]
-        if live:
-            cards.append(f'<p align="center"><sub>LIVE: {" · ".join(live)}</sub></p>')
-        if key == "archive":
-            out += ["<details>", f"<summary><b>{label}</b> — {len(group)} entries. {hint}</summary>", "<br>", ""] + cards + ["", "</details>", ""]
-        else:
-            out += [f'<p align="center"><code>{label}</code><br><sub>{hint}</sub></p>'] + cards + [""]
-    return "\n".join(out).rstrip()
+def pinned_md(repos):
+    lines = []
+    for name in PINNED:
+        r = repos.get(name)
+        if r:
+            demo = f' · [live]({r["homepage"]})' if r["homepage"] else ""
+            lines.append(f'- **[{r["title"]}]({r["html_url"]})** — {r["blurb"]}. `{r["language"] or "—"}`{demo}')
+    return "\n".join(lines)
 
 
-def update_readme(repos):
-    start, end = "<!-- REPOS:START (generated by scripts/build_assets.py) -->", "<!-- REPOS:END -->"
+def index_md(repos):
+    rows = ["| No. | Repository | About | Language | Updated |", "|:--|:--|:--|:--|:--|"]
+    for r in sorted(repos.values(), key=lambda r: r["pushed"], reverse=True):
+        about = r["blurb"] if r["title"] == r["name"] else f'**{r["title"]}** — {r["blurb"]}'
+        rows.append(f'| {r["no"]} | [{r["name"]}]({r["html_url"]}) | {about} | {r["language"] or "—"} | {r["pushed"].strftime("%b %Y")} |')
+    return "\n".join(rows)
+
+
+def update_readme(regions):
     doc = README.read_text(encoding="utf-8")
-    if start not in doc or end not in doc:
-        print("  ! README markers not found; repository index not updated")
-        return
-    head, rest = doc.split(start, 1)
-    tail = rest.split(end, 1)[1]
-    README.write_text(f"{head}{start}\n{repo_index(repos)}\n{end}{tail}", encoding="utf-8", newline="\n")
+    for key, content in regions.items():
+        start, end = f"<!-- {key}:START (generated by scripts/build_assets.py) -->", f"<!-- {key}:END -->"
+        if start not in doc or end not in doc:
+            print(f"  ! README markers for {key} not found")
+            continue
+        head, rest = doc.split(start, 1)
+        doc = f"{head}{start}\n{content}\n{end}{rest.split(end, 1)[1]}"
+    README.write_text(doc, encoding="utf-8", newline="\n")
 
 
 def main():
@@ -823,20 +734,19 @@ def main():
     OUT.mkdir(exist_ok=True)
     for old in OUT.glob("*.svg"):
         old.unlink()
-    hero_trainer(data)
-    trainer_id(data, langs)
+    banner()
+    profile_cards(data, repos, langs)
     divider()
     tiles = stat_tiles(data, langs)
     activity_map(data)
     language_panel(langs)
     recent_panel(repos)
-    repo_cards(repos)
-    rare_devices(repos)
-    type_panels()
+    featured_cards(repos)
+    stack_cards()
     route_cards()
     badge_medals()
     link_buttons()
-    update_readme(repos)
+    update_readme({"FEATURED": featured_html(repos), "PINNED": pinned_md(repos), "INDEX": index_md(repos)})
     print(f"{len(repos)} repositories · {', '.join(tiles)}")
     print(f"wrote {len(list(OUT.glob('*.svg')))} panels to {OUT}")
 

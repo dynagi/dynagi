@@ -1,6 +1,9 @@
 name: Refresh profile panels
 
-# Rebuilds the SVG panels and repository index from live GitHub data.
+# Rebuilds the SVG panels and repository index from live public GitHub data.
+# Needs no extra secrets: it uses the default GITHUB_TOKEN with contents:write
+# only. Pushes made with that token do not trigger workflows, and this one runs
+# only on a schedule or manually, so it cannot loop on its own commits.
 on:
   schedule:
     - cron: "17 3 * * *" # daily, 03:17 UTC

@@ -1,170 +1,165 @@
 <!--
-  Trainer Command Center — GitHub profile for Shivam Upadhyay (@dynagi)
+  GitHub profile for Shivam Upadhyay (@dynagi)
 
-  Every panel in assets/ is drawn by scripts/build_assets.py from live GitHub data
-  and refreshed daily by .github/workflows/refresh.yml. Edit the script's config,
-  not the SVGs. The repository index below is regenerated between its markers.
+  How this page is built
+  - Every image in assets/ is a static SVG drawn by scripts/build_assets.py.
+  - Numbers are real and public: repository and language data from the GitHub REST API,
+    commit totals from the GitHub Search API, and the contribution calendar from
+    github.com/users/dynagi/contributions. Nothing is hand-typed.
+  - .github/workflows/refresh.yml reruns the script daily using the default GITHUB_TOKEN
+    (no extra secrets). If a source is down, the last good value in data/github.json is kept.
+  - Regions between START/END markers are regenerated; edit their content in the script.
 -->
 
 <!-- ═══════════════════════════ HERO ═══════════════════════════ -->
 <p align="center">
-  <a href="https://github.com/dynagi?tab=repositories"><img src="assets/hero-trainer.svg" width="400" alt="Trainer Command Center — Shivam Upadhyay. Software developer: AI, vision, web. Current focus: FinPilot and Communeo."></a>
-  <a href="#profile"><img src="assets/trainer-id.svg" width="400" alt="Trainer ID — handle @dynagi, class software developer, region Bangalore, India, with primary languages, public repository count and join date. Status: open to team-ups."></a>
+  <img src="assets/profile-banner.svg" width="100%" alt="Shivam Upadhyay — software developer. A night sky with a Poké Ball moon above mountain ridgelines, where a trainer and a small companion look out over distant lights.">
+</p>
+
+<h1 align="center">Shivam Upadhyay</h1>
+
+<p align="center">
+  <b>Software developer who teaches machines to see, builds intelligent systems, and turns ideas into real products.</b>
 </p>
 
 <p align="center">
-  <b>Software developer who teaches machines to see</b> — then ships the product around them.<br>
+  <a href="https://github.com/dynagi?tab=repositories">GitHub</a> ·
   <a href="https://portfolio-three-nu-3ula1bfeni.vercel.app/">Portfolio</a> ·
   <a href="https://www.linkedin.com/in/shivam24upadhyay/">LinkedIn</a> ·
   <a href="mailto:shivam24upadhyay@gmail.com">Email</a>
 </p>
 
 <p align="center">
-  <a href="#profile"><code>[ PROFILE ]</code></a>
-  <a href="#activity"><code>[ ACTIVITY ]</code></a>
-  <a href="#repositories"><code>[ REPOSITORIES ]</code></a>
-  <a href="#stack"><code>[ STACK ]</code></a>
-  <a href="#mission"><code>[ MISSION ]</code></a>
-  <a href="#journey"><code>[ JOURNEY ]</code></a>
-  <a href="#contact"><code>[ CONTACT ]</code></a>
+  <a href="#about"><code>ABOUT</code></a>
+  <a href="#stats"><code>STATS</code></a>
+  <a href="#projects"><code>PROJECTS</code></a>
+  <a href="#stack"><code>STACK</code></a>
+  <a href="#mission"><code>MISSION</code></a>
+  <a href="#journey"><code>JOURNEY</code></a>
+  <a href="#connect"><code>CONNECT</code></a>
 </p>
 
-<!-- ═════════════════ TRAINER PROFILE + STATISTICS ═════════════════ -->
-<a id="profile"></a>
-<p align="center"><img src="assets/divider.svg" width="100%" alt=""></p>
-<p align="center"><code>TRAINER PROFILE</code></p>
-<h2 align="center">Who's behind the handle</h2>
+<!-- ═══════════════════ PROFILE + SUMMARY ═══════════════════ -->
+<a id="about"></a>
+<p align="center">
+  <img src="assets/profile-card.svg" width="400" alt="Profile: Network Operations at Microland (RSM UK); B.Tech CSE, MIT-WPU, Pune; based in Bangalore, India; builds AI, computer vision and full-stack products; open to AI, vision and full-stack roles.">
+  <a href="https://github.com/dynagi"><img src="assets/github-card.svg" width="400" alt="GitHub: @dynagi, with public repository count, top languages, member-since date and latest push."></a>
+</p>
 
-> I build around computer vision and LLMs, and I write the web or mobile app those models end up living in. Lately that means an AI finance agent, an exam-paper security platform and a community app. By day I work on network infrastructure at Microland.
+I build AI-powered applications, computer-vision systems and the full-stack products around them — recently a finance co-pilot, an exam-paper security platform and a community app. My day job is network operations at Microland, where I'm building depth in infrastructure, cloud and system administration.
 
-<p align="center"><code>TRAINER STATISTICS · LIVE FROM GITHUB</code></p>
+<!-- ═══════════════════ GITHUB STATISTICS ═══════════════════ -->
+<a id="stats"></a>
+<p align="center"><img src="assets/pokeball-divider.svg" width="100%" alt=""></p>
+<h2 align="center">GitHub Statistics</h2>
+
 <p align="center">
   <img src="assets/stat-1.svg" width="196" alt="Public repositories">
   <img src="assets/stat-2.svg" width="196" alt="Contributions in the last year">
   <img src="assets/stat-3.svg" width="196" alt="Total commits">
   <img src="assets/stat-4.svg" width="196" alt="Languages used">
 </p>
-
-<!-- ═════════════════════ TRAINER ACTIVITY ═════════════════════ -->
-<a id="activity"></a>
-<p align="center"><img src="assets/divider.svg" width="100%" alt=""></p>
-<p align="center"><code>TRAINER ACTIVITY</code></p>
-<h2 align="center">Contribution Map</h2>
-
-<p align="center">
-  <a href="https://github.com/dynagi"><img src="assets/activity-map.svg" width="840" alt="Contribution map for @dynagi over the last 12 months, with active days, longest streak and best day."></a>
-</p>
 <p align="center">
   <img src="assets/languages.svg" width="400" alt="Most used languages by code size">
   <a href="https://github.com/dynagi?tab=repositories"><img src="assets/recent.svg" width="400" alt="Most recently pushed repositories"></a>
 </p>
 
-<!-- ═══════════════ POKÉDEX · REPOSITORY INDEX ═══════════════ -->
-<a id="repositories"></a>
-<p align="center"><img src="assets/divider.svg" width="100%" alt=""></p>
-<p align="center"><code>POKÉDEX · REPOSITORY INDEX</code></p>
-<h2 align="center">Repository Index</h2>
-<p align="center">Every public repository, numbered in the order it was caught. Each entry opens its repo.</p>
+<!-- ═══════════════════ CONTRIBUTION ACTIVITY ═══════════════════ -->
+<h3 align="center">Contribution Activity</h3>
+<p align="center">
+  <a href="https://github.com/dynagi"><img src="assets/activity-map.svg" width="840" alt="Contribution map for @dynagi over the last 12 months, with active days, longest streak and best day."></a>
+</p>
+<p align="center"><sub>My public GitHub contribution calendar, redrawn daily from live data.</sub></p>
 
-<p align="center"><code>★ RARE ENCOUNTERS</code><br><sub>The three builds I'd show first.</sub></p>
+<!-- ═══════════════════ FEATURED REPOSITORIES ═══════════════════ -->
+<a id="projects"></a>
+<p align="center"><img src="assets/pokeball-divider.svg" width="100%" alt=""></p>
+<h2 align="center">Featured Repositories</h2>
+<p align="center">Four builds worth opening first. Each card links to its repository.</p>
 
-<!-- REPOS:START (generated by scripts/build_assets.py) -->
+<!-- FEATURED:START (generated by scripts/build_assets.py) -->
 <p align="center">
-  <a href="https://github.com/dynagi/AI"><img src="assets/rare-ai.svg" width="600" alt="Rare encounter — #013 AI — FinPilot — AI personal-finance agent over a real ledger — Python, updated Sep 2026"></a>
+  <a href="https://github.com/dynagi/AI"><img src="assets/project-ai.svg" width="400" alt="FinPilot (dynagi/AI) — AI personal-finance co-pilot grounded in a real transaction ledger. Balances and alerts are deterministic code; the LLM only explains them. Built with Next.js, FastAPI, Supabase, LangGraph."></a>
+  <a href="https://github.com/dynagi/App"><img src="assets/project-app.svg" width="400" alt="Communeo (dynagi/App) — Community platform for students, developers and founders: networking, project collaboration, events and AI-assisted matching. Built with Flutter, Dart, Supabase."></a>
+  <a href="https://github.com/dynagi/Final-Exam"><img src="assets/project-final-exam.svg" width="400" alt="SecureAIExam (dynagi/Final-Exam) — Secure exam-paper platform with role-based logins, sealed papers, a hash-chained audit trail and QR scan-in at exam centers. Built with React Native, Node.js, FastAPI, Supabase."></a>
+  <a href="https://github.com/dynagi/AI_Agent"><img src="assets/project-ai-agent.svg" width="400" alt="AURA (dynagi/AI_Agent) — Multi-agent personal AI platform: a coordinator routes requests to travel, finance, research and calendar agents. Built with React, TypeScript, Express, FastAPI, Supabase."></a>
 </p>
-<p align="center">
-  Deterministic finance, LLM only for language: balances and alerts are exact code, and the agent can only call read-only tools on your own data.<br>
-  <a href="https://github.com/dynagi/AI"><b>[ OPEN REPOSITORY ]</b></a>
-</p>
+<!-- FEATURED:END -->
 
-<p align="center">
-  <a href="https://github.com/dynagi/App"><img src="assets/rare-app.svg" width="600" alt="Rare encounter — #011 App — Communeo — Community app for students, devs &amp; founders — Dart, updated Sep 2026"></a>
-</p>
-<p align="center">
-  One app for networking, hackathon team formation, jobs, mentorship and events, with AI-assisted matching.<br>
-  <a href="https://github.com/dynagi/App"><b>[ OPEN REPOSITORY ]</b></a>
-</p>
+<!-- ═══════════════════ PINNED PROJECTS ═══════════════════ -->
+<h3>Pinned Projects</h3>
 
-<p align="center">
-  <a href="https://github.com/dynagi/Final-Exam"><img src="assets/rare-final-exam.svg" width="600" alt="Rare encounter — #008 Final-Exam — SecureAIExam — Leak-resistant exam paper platform — TypeScript, updated Aug 2026"></a>
-</p>
-<p align="center">
-  Follows every question paper from sealing to the exam hall, with a hash-chained audit trail and QR scan-in at each center.<br>
-  <a href="https://github.com/dynagi/Final-Exam"><b>[ OPEN REPOSITORY ]</b></a>
-</p>
-
-<p align="center"><code>⚡ ACTIVE BUILDS</code><br><sub>Pushed to in the last 90 days.</sub></p>
-<p align="center">
-  <a href="https://github.com/dynagi/AI_Agent"><img src="assets/repo-ai-agent.svg" width="400" alt="#014 AI_Agent — AURA — Web client for a multi-agent AI assistant — Jupyter Notebook, updated Oct 2026"></a>
-  <a href="https://github.com/dynagi/Portfolio"><img src="assets/repo-portfolio.svg" width="400" alt="#010 Portfolio — Pokédex Portfolio — Pokémon-inspired developer portfolio — CSS, updated Oct 2026"></a>
-</p>
-<p align="center"><sub>LIVE: <a href="https://portfolio-gigacbum.vercel.app">Portfolio ↗</a></sub></p>
-
-<p align="center"><code>◈ EXPERIMENT LAB</code><br><sub>AI, computer-vision and side experiments.</sub></p>
-<p align="center">
-  <a href="https://github.com/dynagi/Tarun-Birthday"><img src="assets/repo-tarun-birthday.svg" width="400" alt="#009 Tarun-Birthday — Birthday Reveal — Animated birthday celebration site — JavaScript, updated Aug 2026"></a>
-  <a href="https://github.com/dynagi/Secure-RAG"><img src="assets/repo-secure-rag.svg" width="400" alt="#007 Secure-RAG — Secure RAG — Document Q&amp;A with semantic chunking and a LangGraph retry loop — Python, updated Jul 2026"></a>
-  <a href="https://github.com/dynagi/Tennis-Analysis"><img src="assets/repo-tennis-analysis.svg" width="400" alt="#005 Tennis-Analysis — Tennis Analysis — Player, ball and court tracking from match video — Python, updated Dec 2025"></a>
-  <a href="https://github.com/dynagi/Path-finder"><img src="assets/repo-path-finder.svg" width="400" alt="#002 Path-finder — PathFinder — Assistive navigation from object detection and depth — Python, updated Dec 2025"></a>
-</p>
+<!-- PINNED:START (generated by scripts/build_assets.py) -->
+- **[Tennis Analysis](https://github.com/dynagi/Tennis-Analysis)** — Player, ball and court tracking from match video with YOLO and CNNs. `Python`
+- **[PathFinder](https://github.com/dynagi/Path-finder)** — Assistive navigation for visually impaired users using YOLO and MiDaS depth. `Python`
+- **[Secure RAG](https://github.com/dynagi/Secure-RAG)** — Document Q&A with semantic chunking, ChromaDB and a LangGraph retry loop. `Python`
+- **[Portfolio](https://github.com/dynagi/Portfolio)** — Pokédex-inspired developer portfolio built with Next.js and GSAP. `CSS` · [live](https://portfolio-gigacbum.vercel.app)
+<!-- PINNED:END -->
 
 <details>
-<summary><b>ARCHIVED ENTRIES</b> — 5 entries. Older builds and earlier iterations.</summary>
+<summary><b>Full repository index</b> — every public repository, newest first</summary>
 <br>
 
-<p align="center">
-  <a href="https://github.com/dynagi/Agent"><img src="assets/repo-agent.svg" width="400" alt="#012 Agent — FinPilot · early build — First iteration of the finance agent — Python, updated Sep 2026"></a>
-  <a href="https://github.com/dynagi/New-Exam"><img src="assets/repo-new-exam.svg" width="400" alt="#006 New-Exam — SecureAIExam · early build — Earlier iteration of the exam platform — TypeScript, updated Aug 2026"></a>
-  <a href="https://github.com/dynagi/OneCart"><img src="assets/repo-onecart.svg" width="400" alt="#004 OneCart — OneCART — MERN e-commerce with live chat, voice and video — JavaScript, updated Nov 2025"></a>
-  <a href="https://github.com/dynagi/StockMarket"><img src="assets/repo-stockmarket.svg" width="400" alt="#003 StockMarket — Warehouse and stock management app — JavaScript, updated Nov 2025"></a>
-  <a href="https://github.com/dynagi/ecom"><img src="assets/repo-ecom.svg" width="400" alt="#001 ecom — MERN e-commerce built while following a course — JavaScript, updated Aug 2024"></a>
-</p>
+<!-- INDEX:START (generated by scripts/build_assets.py) -->
+| No. | Repository | About | Language | Updated |
+|:--|:--|:--|:--|:--|
+| 014 | [AI_Agent](https://github.com/dynagi/AI_Agent) | **AURA** — Multi-agent personal AI platform: a coordinator routes requests to travel, finance, research and calendar agents. | TypeScript | Oct 2026 |
+| 010 | [Portfolio](https://github.com/dynagi/Portfolio) | Pokédex-inspired developer portfolio built with Next.js and GSAP | CSS | Oct 2026 |
+| 013 | [AI](https://github.com/dynagi/AI) | **FinPilot** — AI personal-finance co-pilot grounded in a real transaction ledger. Balances and alerts are deterministic code; the LLM only explains them. | Python | Sep 2026 |
+| 012 | [Agent](https://github.com/dynagi/Agent) | Earlier iteration of FinPilot | Python | Sep 2026 |
+| 011 | [App](https://github.com/dynagi/App) | **Communeo** — Community platform for students, developers and founders: networking, project collaboration, events and AI-assisted matching. | Dart | Sep 2026 |
+| 009 | [Tarun-Birthday](https://github.com/dynagi/Tarun-Birthday) | Animated birthday celebration site built with React and Vite | JavaScript | Aug 2026 |
+| 008 | [Final-Exam](https://github.com/dynagi/Final-Exam) | **SecureAIExam** — Secure exam-paper platform with role-based logins, sealed papers, a hash-chained audit trail and QR scan-in at exam centers. | TypeScript | Aug 2026 |
+| 006 | [New-Exam](https://github.com/dynagi/New-Exam) | Earlier iteration of SecureAIExam | TypeScript | Aug 2026 |
+| 007 | [Secure-RAG](https://github.com/dynagi/Secure-RAG) | **Secure RAG** — Document Q&A with semantic chunking, ChromaDB and a LangGraph retry loop | Python | Jul 2026 |
+| 005 | [Tennis-Analysis](https://github.com/dynagi/Tennis-Analysis) | **Tennis Analysis** — Player, ball and court tracking from match video with YOLO and CNNs | Python | Dec 2025 |
+| 002 | [Path-finder](https://github.com/dynagi/Path-finder) | **PathFinder** — Assistive navigation for visually impaired users using YOLO and MiDaS depth | Python | Dec 2025 |
+| 004 | [OneCart](https://github.com/dynagi/OneCart) | **OneCART** — MERN e-commerce store with live chat, voice and video | JavaScript | Nov 2025 |
+| 003 | [StockMarket](https://github.com/dynagi/StockMarket) | Warehouse and stock management app with a FastAPI backend | JavaScript | Nov 2025 |
+| 001 | [ecom](https://github.com/dynagi/ecom) | MERN e-commerce app built while following a course | JavaScript | Aug 2024 |
+<!-- INDEX:END -->
 
 </details>
-<!-- REPOS:END -->
 
-<!-- ════════════════════ TYPE CHART · TECH STACK ════════════════════ -->
+<!-- ═══════════════════════ TECH STACK ═══════════════════════ -->
 <a id="stack"></a>
-<p align="center"><img src="assets/divider.svg" width="100%" alt=""></p>
-<p align="center"><code>TYPE CHART · TECH STACK</code></p>
-<h2 align="center">Type Chart</h2>
-<p align="center">What the repositories above are actually built with.</p>
+<p align="center"><img src="assets/pokeball-divider.svg" width="100%" alt=""></p>
+<h2 align="center">Tech Stack</h2>
+<p align="center">What the projects above are built with.</p>
 
 <p align="center">
-  <img src="assets/type-electric.svg" width="268" alt="Electric type · Web: TypeScript, JavaScript, React, Next.js, Node.js, Express, Tailwind CSS">
-  <img src="assets/type-fire.svg" width="268" alt="Fire type · Backend & Agents: Python, FastAPI, LangGraph, LangChain, Streamlit">
-  <img src="assets/type-psychic.svg" width="268" alt="Psychic type · AI & Vision: YOLO, OpenCV, MiDaS, CNNs, LLMs / RAG">
-  <img src="assets/type-water.svg" width="268" alt="Water type · Data: Supabase, PostgreSQL, MongoDB, ChromaDB, MySQL">
-  <img src="assets/type-grass.svg" width="268" alt="Grass type · Mobile: Flutter, Dart, React Native, Expo">
-  <img src="assets/type-steel.svg" width="268" alt="Steel type · Tools & Infra: Git, Docker, Linux, AWS, Networking">
+  <img src="assets/stack-web.svg" width="268" alt="Web Development: JavaScript, TypeScript, React, Next.js, Node.js, Express, Tailwind CSS">
+  <img src="assets/stack-backend.svg" width="268" alt="Backend and AI Agents: Python, FastAPI, LangGraph, LangChain">
+  <img src="assets/stack-vision.svg" width="268" alt="AI and Computer Vision: YOLO, OpenCV, MiDaS, CNNs, LLMs and RAG">
+  <img src="assets/stack-data.svg" width="268" alt="Databases: Supabase, PostgreSQL, MongoDB, MySQL, ChromaDB">
+  <img src="assets/stack-mobile.svg" width="268" alt="Mobile Development: Flutter, Dart, React Native, Expo">
+  <img src="assets/stack-infra.svg" width="268" alt="Tools and Infrastructure: Git, Docker, Linux, AWS, Networking">
 </p>
 
 <!-- ═════════════════════ CURRENT MISSION ═════════════════════ -->
 <a id="mission"></a>
-<p align="center"><img src="assets/divider.svg" width="100%" alt=""></p>
-<p align="center"><code>MISSION STATUS · ACTIVE</code></p>
+<p align="center"><img src="assets/pokeball-divider.svg" width="100%" alt=""></p>
 <h2 align="center">Current Mission</h2>
 
-- **Building** — [FinPilot](https://github.com/dynagi/AI): an AI agent for personal-finance decisions, grounded in a real ledger.
-- **Building** — [Communeo](https://github.com/dynagi/App): a Flutter community app for students, developers and founders.
-- **Exploring** — [AURA](https://github.com/dynagi/AI_Agent): a web client for a multi-agent AI assistant.
-- **Training** — network infrastructure, cloud and system administration at Microland.
-- **Seeking** — teams and roles in AI, computer vision and full-stack engineering.
+- 🟢 **Building** [FinPilot](https://github.com/dynagi/AI) — an AI co-pilot for personal-finance decisions.
+- 🟢 **Building** [Communeo](https://github.com/dynagi/App) — a community app for students, developers and founders.
+- 🟢 **Developing** [AURA](https://github.com/dynagi/AI_Agent) — a multi-agent personal AI platform.
+- 🔵 **Learning** network infrastructure, cloud and system administration through my work at Microland.
+- 🔵 **Sharpening** AI, computer vision and full-stack engineering skills.
 
-<!-- ═════════════════════ TRAINER JOURNEY ═════════════════════ -->
+<!-- ═══════════════ EDUCATION AND CAREER JOURNEY ═══════════════ -->
 <a id="journey"></a>
-<p align="center"><img src="assets/divider.svg" width="100%" alt=""></p>
-<p align="center"><code>ROUTE MAP</code></p>
-<h2 align="center">Trainer Journey</h2>
+<p align="center"><img src="assets/pokeball-divider.svg" width="100%" alt=""></p>
+<h2 align="center">Education &amp; Career</h2>
 
 <p align="center">
-  <img src="assets/route-1.svg" width="268" alt="2021 — 2025: B.Tech, Computer Science, MIT World Peace University, Pune. CGPA 8.61.">
+  <img src="assets/route-1.svg" width="268" alt="2021 — 2025: B.Tech in Computer Science and Engineering, MIT World Peace University, Pune. CGPA 8.61.">
   <img src="assets/route-2.svg" width="268" alt="Jul 2024 — Jan 2025: Software Intern, M3 Technology. SQL validation and reporting tooling.">
-  <img src="assets/route-3.svg" width="268" alt="Jan 2026 — Present: Network Engineer, Microland. IT infrastructure, cloud and system administration.">
+  <img src="assets/route-3.svg" width="268" alt="Jan 2026 — Present: Network Operations, Microland, RSM UK project. Network infrastructure and operations.">
 </p>
 
-<!-- ═════════════════════ TRAINER BADGES ═════════════════════ -->
-<p align="center"><code>TRAINER BADGES</code></p>
+<!-- ═══════════ ACHIEVEMENTS AND CERTIFICATIONS ═══════════ -->
+<h3 align="center">Achievements &amp; Certifications</h3>
 <p align="center">
   <img src="assets/badge-paper-heart.svg" width="196" alt="Publication: ML Models for Heart Disease Prediction — research paper, Aug 2024">
   <img src="assets/badge-paper-tennis.svg" width="196" alt="Publication: Tennis Analytics with ML & Computer Vision — research paper, Jun 2025">
@@ -172,26 +167,21 @@
   <img src="assets/badge-oci-ds.svg" width="196" alt="Certification: OCI 2025 — Data Science Professional, Oracle Cloud, Sep 2025">
 </p>
 
-<!-- ═══════════════════ POKÉDEX COMMUNICATION ═══════════════════ -->
-<a id="contact"></a>
-<p align="center"><img src="assets/divider.svg" width="100%" alt=""></p>
-<p align="center"><code>POKÉDEX COMMUNICATION</code></p>
-<h2 align="center">Open a Channel</h2>
+<!-- ═══════════════════════ LET'S CONNECT ═══════════════════════ -->
+<a id="connect"></a>
+<p align="center"><img src="assets/pokeball-divider.svg" width="100%" alt=""></p>
+<h2 align="center">Let's Connect</h2>
 <p align="center">
-  Got a model that needs shipping, or a product that needs eyes? Email gets the quickest reply:<br>
-  <a href="mailto:shivam24upadhyay@gmail.com">shivam24upadhyay@gmail.com</a>
+  Open to roles and collaborations in AI, computer vision and full-stack engineering.<br>
+  Email is the fastest way to reach me: <a href="mailto:shivam24upadhyay@gmail.com">shivam24upadhyay@gmail.com</a>
 </p>
 
 <p align="center">
-  <a href="mailto:shivam24upadhyay@gmail.com"><img src="assets/link-email.svg" width="196" alt="Transmit — Email"></a>
-  <a href="https://www.linkedin.com/in/shivam24upadhyay/"><img src="assets/link-linkedin.svg" width="196" alt="Connect — LinkedIn"></a>
-  <a href="https://portfolio-three-nu-3ula1bfeni.vercel.app/"><img src="assets/link-portfolio.svg" width="196" alt="Link — Portfolio"></a>
-  <a href="https://portfolio-three-nu-3ula1bfeni.vercel.app/resume.pdf"><img src="assets/link-resume.svg" width="196" alt="Record — Résumé (PDF)"></a>
+  <a href="mailto:shivam24upadhyay@gmail.com"><img src="assets/link-email.svg" width="160" alt="Email"></a>
+  <a href="https://www.linkedin.com/in/shivam24upadhyay/"><img src="assets/link-linkedin.svg" width="160" alt="LinkedIn"></a>
+  <a href="https://portfolio-three-nu-3ula1bfeni.vercel.app/"><img src="assets/link-portfolio.svg" width="160" alt="Portfolio"></a>
+  <a href="https://github.com/dynagi"><img src="assets/link-github.svg" width="160" alt="GitHub"></a>
+  <a href="https://portfolio-three-nu-3ula1bfeni.vercel.app/resume.pdf"><img src="assets/link-resume.svg" width="160" alt="Résumé (PDF)"></a>
 </p>
 
-<!-- ═══════════════════════════ FOOTER ═══════════════════════════ -->
-<p align="center"><img src="assets/divider.svg" width="100%" alt=""></p>
-<p align="center">
-  <code>END OF ENTRY</code><br>
-  <sub>The journey continues. Gotta build 'em all.</sub>
-</p>
+<p align="center"><sub>Catch ideas. Build better. Ship meaningful software.</sub></p>

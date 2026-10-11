@@ -55,8 +55,8 @@ I build AI-powered applications, computer-vision systems and the full-stack prod
 
 <p align="center">
   <img src="assets/stat-1.65fe3023.svg" width="196" alt="Public repositories">
-  <img src="assets/stat-2.0f1a2121.svg" width="196" alt="Contributions in the last year">
-  <img src="assets/stat-3.503889d0.svg" width="196" alt="Total commits">
+  <img src="assets/stat-2.79ba83ef.svg" width="196" alt="Contributions in the last year">
+  <img src="assets/stat-3.24b38b6c.svg" width="196" alt="Total commits">
   <img src="assets/stat-4.a5272a25.svg" width="196" alt="Languages used">
 </p>
 <p align="center">
@@ -67,7 +67,7 @@ I build AI-powered applications, computer-vision systems and the full-stack prod
 <!-- ═══════════════════ CONTRIBUTION ACTIVITY ═══════════════════ -->
 <h3 align="center">Contribution Activity</h3>
 <p align="center">
-  <a href="https://github.com/dynagi"><img src="assets/activity-map.96285db9.svg" width="840" alt="Contribution map for @dynagi over the last 12 months, with active days, longest streak and best day."></a>
+  <a href="https://github.com/dynagi"><img src="assets/activity-map.ea8b4b33.svg" width="840" alt="Contribution map for @dynagi over the last 12 months, with active days, longest streak and best day."></a>
 </p>
 <p align="center"><sub>My public GitHub contribution calendar, redrawn daily from live data.</sub></p>
 

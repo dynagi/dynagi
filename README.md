@@ -67,7 +67,7 @@ I build AI-powered applications, computer-vision systems and the full-stack prod
 <!-- ═══════════════════ CONTRIBUTION ACTIVITY ═══════════════════ -->
 <h3 align="center">Contribution Activity</h3>
 <p align="center">
-  <a href="https://github.com/dynagi"><img src="assets/activity-map.19ff867c.svg" width="840" alt="Contribution map for @dynagi over the last 12 months, with active days, longest streak and best day."></a>
+  <a href="https://github.com/dynagi"><img src="assets/activity-map.4c4f29c0.svg" width="840" alt="Contribution map for @dynagi over the last 12 months, with active days, longest streak and best day."></a>
 </p>
 <p align="center"><sub>My public GitHub contribution calendar, redrawn daily from live data.</sub></p>
 

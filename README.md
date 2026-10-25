@@ -43,7 +43,7 @@
 <a id="about"></a>
 <p align="center">
   <img src="assets/profile-card.882d8397.svg" width="400" alt="Profile: Network Operations at Microland; B.Tech CSE, MIT-WPU, Pune; based in Bangalore, India; builds AI, computer vision and full-stack products; open to AI, vision and full-stack roles.">
-  <a href="https://github.com/dynagi"><img src="assets/github-card.ced0dc98.svg" width="400" alt="GitHub: @dynagi, with public repository count, top languages, member-since date and latest push."></a>
+  <a href="https://github.com/dynagi"><img src="assets/github-card.a726f0bf.svg" width="400" alt="GitHub: @dynagi, with public repository count, top languages, member-since date and latest push."></a>
 </p>
 
 I build AI-powered applications, computer-vision systems and the full-stack products around them — recently a finance co-pilot, an exam-paper security platform and a community app. My day job is network operations at Microland, where I'm building depth in infrastructure, cloud and system administration.
@@ -55,19 +55,19 @@ I build AI-powered applications, computer-vision systems and the full-stack prod
 
 <p align="center">
   <img src="assets/stat-1.65fe3023.svg" width="196" alt="Public repositories">
-  <img src="assets/stat-2.e3a45121.svg" width="196" alt="Contributions in the last year">
-  <img src="assets/stat-3.1887c1f1.svg" width="196" alt="Total commits">
+  <img src="assets/stat-2.30a227e6.svg" width="196" alt="Contributions in the last year">
+  <img src="assets/stat-3.d5c1c2df.svg" width="196" alt="Total commits">
   <img src="assets/stat-4.a5272a25.svg" width="196" alt="Languages used">
 </p>
 <p align="center">
-  <img src="assets/languages.2dc5f274.svg" width="400" alt="Most used languages by code size">
-  <a href="https://github.com/dynagi?tab=repositories"><img src="assets/recent.21048544.svg" width="400" alt="Most recently pushed repositories"></a>
+  <img src="assets/languages.186019a1.svg" width="400" alt="Most used languages by code size">
+  <a href="https://github.com/dynagi?tab=repositories"><img src="assets/recent.f336e3af.svg" width="400" alt="Most recently pushed repositories"></a>
 </p>
 
 <!-- ═══════════════════ CONTRIBUTION ACTIVITY ═══════════════════ -->
 <h3 align="center">Contribution Activity</h3>
 <p align="center">
-  <a href="https://github.com/dynagi"><img src="assets/activity-map.7c12c557.svg" width="840" alt="Contribution map for @dynagi over the last 12 months, with active days, longest streak and best day."></a>
+  <a href="https://github.com/dynagi"><img src="assets/activity-map.672efb25.svg" width="840" alt="Contribution map for @dynagi over the last 12 months, with active days, longest streak and best day."></a>
 </p>
 <p align="center"><sub>My public GitHub contribution calendar, redrawn daily from live data.</sub></p>
 

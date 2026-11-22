@@ -2,7 +2,7 @@
  "user": {
   "login": "dynagi",
   "name": "Shivam",
-  "public_repos": 15,
+  "public_repos": 16,
   "followers": 0,
   "following": 0,
   "created_at": "2022-01-22T16:35:26Z"
@@ -71,7 +71,7 @@
    "html_url": "https://github.com/dynagi/dynagi",
    "homepage": "https://github.com/dynagi",
    "created_at": "2022-01-23T02:16:11Z",
-   "pushed_at": "2026-11-20T11:28:49Z"
+   "pushed_at": "2026-11-21T10:55:35Z"
   },
   {
    "name": "ecom",
@@ -98,6 +98,19 @@
    "homepage": null,
    "created_at": "2026-08-15T19:59:12Z",
    "pushed_at": "2026-10-30T15:50:04Z"
+  },
+  {
+   "name": "Giga-Fav",
+   "description": null,
+   "language": "TypeScript",
+   "stargazers_count": 0,
+   "forks_count": 0,
+   "fork": false,
+   "archived": false,
+   "html_url": "https://github.com/dynagi/Giga-Fav",
+   "homepage": "https://giga-fav.vercel.app",
+   "created_at": "2026-11-22T09:17:50Z",
+   "pushed_at": "2026-11-22T09:40:09Z"
   },
   {
    "name": "New-Exam",
@@ -255,6 +268,12 @@
    "PLpgSQL": 66981,
    "Python": 39973
   },
+  "Giga-Fav": {
+   "TypeScript": 494473,
+   "CSS": 187361,
+   "JavaScript": 76453,
+   "HTML": 1106
+  },
   "New-Exam": {
    "TypeScript": 915461,
    "JavaScript": 174433,
@@ -294,46 +313,11 @@
    "Python": 48102
   }
  },
- "commits": 89,
+ "commits": 92,
  "prs": 0,
  "issues": 0,
  "contributions": {
   "days": [
-   {
-    "date": "2025-11-16",
-    "level": 0,
-    "count": 0
-   },
-   {
-    "date": "2025-11-17",
-    "level": 0,
-    "count": 0
-   },
-   {
-    "date": "2025-11-18",
-    "level": 0,
-    "count": 0
-   },
-   {
-    "date": "2025-11-19",
-    "level": 0,
-    "count": 0
-   },
-   {
-    "date": "2025-11-20",
-    "level": 0,
-    "count": 0
-   },
-   {
-    "date": "2025-11-21",
-    "level": 0,
-    "count": 0
-   },
-   {
-    "date": "2025-11-22",
-    "level": 1,
-    "count": 1
-   },
    {
     "date": "2025-11-23",
     "level": 0,
@@ -2153,9 +2137,14 @@
     "date": "2026-11-21",
     "level": 0,
     "count": 0
+   },
+   {
+    "date": "2026-11-22",
+    "level": 1,
+    "count": 4
    }
   ],
-  "total": 97
+  "total": 101
  },
- "fetched_at": "2026-11-21"
+ "fetched_at": "2026-11-22"
 }
